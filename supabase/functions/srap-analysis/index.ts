@@ -103,7 +103,7 @@ async function callGeminiAPI(
   systemInstruction: string,
 ): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
-  const model = Deno.env.get("GEMINI_MODEL") || "gemini-3.8-flash";
+  const model = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
 
   if (!apiKey) {
     throw new Error("AI service is not configured");
