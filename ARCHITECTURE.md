@@ -141,7 +141,7 @@ The Gemini API key never enters the browser bundle.
 
 Default production model:
 
-gemini-3.8-flash
+gemini-2.5-flash
 
 The model can be changed through the server-side GEMINI_MODEL configuration without changing client code.
 
