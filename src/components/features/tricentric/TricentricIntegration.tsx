@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 
@@ -41,7 +41,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
   const [bodyText, setBodyText] = useState('');
   const [synthesis, setSynthesis] = useState('');
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
-  const [intervalId, setIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
+  const breathingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
@@ -51,30 +51,28 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
 
   const { refreshProfile } = useProfile(userId);
 
-  useEffect(
-    () => () => {
-      if (intervalId) {
-        clearInterval(intervalId);
+  useEffect(() => {
+    return () => {
+      if (breathingTimer.current) {
+        clearInterval(breathingTimer.current);
       }
-    },
-    [intervalId],
-  );
+    };
+  }, []);
 
   const toggleBreathing = () => {
-    if (!intervalId) {
-      const id = setInterval(() => {
+    if (!breathingTimer.current) {
+      breathingTimer.current = setInterval(() => {
         setBreathingPhase((prev) => {
           if (prev === 'inhale') return 'hold';
           if (prev === 'hold') return 'exhale';
           return 'inhale';
         });
       }, 4000);
-      setIntervalId(id);
       return;
     }
 
-    clearInterval(intervalId);
-    setIntervalId(null);
+    clearInterval(breathingTimer.current);
+    breathingTimer.current = null;
     setBreathingPhase('inhale');
   };
 
@@ -94,11 +92,17 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
         p_synthesis: synthesis.trim(),
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === '23505') {
+          alert('Today’s tricentric practice has already been completed.');
+          return;
+        }
+        throw error;
+      }
 
       await refreshProfile();
 
-      const result = data as { unlocked: boolean; xp_awarded: number };
+      const result = data as { practice_id: string; xp_awarded: number; achievement_unlocked: boolean };
 
       setHeadText('');
       setHeartText('');
@@ -106,9 +110,9 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
       setSynthesis('');
 
       alert(
-        result.unlocked
+        result.achievement_unlocked
           ? `Practice saved. +${result.xp_awarded} XP earned. Redirecting to the digital version.`
-          : 'Practice saved. The Tricentric achievement was already unlocked.'
+          : `Practice saved. +${result.xp_awarded} XP earned.`
       );
 
       if (kofiUrl) {
@@ -177,7 +181,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
           onClick={toggleBreathing}
           className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg transition-all mb-4"
         >
-          {intervalId ? 'Stop Practice' : 'Start Practice'}
+          {breathingTimer.current ? 'Stop Practice' : 'Start Practice'}
         </button>
       </div>
 
@@ -208,19 +212,19 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
             <div className="space-y-3 text-sm text-gray-300">
               <p>
                 <span className="text-red-400 mr-2">💢</span>
-                <strong className="text-red-300">Chest pressure:</strong> unspoken emotion, boundary needed.
+                <strong className="text-red-300">Chest pressure:</strong> a sensation you can observe; ask what emotion, context or boundary may be relevant.
               </p>
               <p>
                 <span className="text-blue-400 mr-2">🌀</span>
-                <strong className="text-blue-300">Shaky hands:</strong> blocked energy, action is waiting.
+                <strong className="text-blue-300">Shaky hands:</strong> a bodily sensation that may accompany stress or activation; treat it as a cue to pause and observe.
               </p>
               <p>
                 <span className="text-green-400 mr-2">😴</span>
-                <strong className="text-green-300">Persistent fatigue:</strong> values and daily life are misaligned.
+                <strong className="text-green-300">Persistent fatigue:</strong> a signal worth observing alongside sleep, workload and other context; it does not prove a values mismatch.
               </p>
               <p>
                 <span className="text-purple-400 mr-2">🌊</span>
-                <strong className="text-purple-300">Expanded breathing:</strong> authentic alignment and confirmation.
+                <strong className="text-purple-300">Expanded breathing:</strong> a subjective sense of ease that can be used as a reflection cue, not as proof of a decision.
               </p>
             </div>
           </div>
