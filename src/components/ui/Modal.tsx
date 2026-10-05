@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 interface ModalProps {
   isOpen: boolean;
@@ -9,8 +9,13 @@ interface ModalProps {
 }
 
 const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, icon = '🎯', children }) => {
+  const previousFocusRef = useRef<HTMLElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (!isOpen) return;
+
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
 
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -19,7 +24,10 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, icon = '🎯', ch
     };
 
     window.addEventListener('keydown', handleEscape);
-    return () => window.removeEventListener('keydown', handleEscape);
+    return () => {
+      window.removeEventListener('keydown', handleEscape);
+      previousFocusRef.current?.focus();
+    };
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -47,6 +55,7 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, icon = '🎯', ch
         <div className="text-gray-300 italic text-sm mb-6">{children}</div>
         <div className="text-center">
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="bg-red-700 hover:bg-red-800 text-white font-bold py-2 px-6 rounded-lg transition-all"
           >
