@@ -24,14 +24,11 @@ export function useProfile(userId: string | undefined) {
         if (fetchError) throw fetchError;
 
         if (!data) {
-          const { data: newProfile, error: insertError } = await supabase
-            .from('user_profiles')
-            .insert({ id: userId })
-            .select()
-            .single();
+          const { data: ensuredProfile, error: ensureError } = await supabase
+            .rpc('ensure_user_profile');
 
-          if (insertError) throw insertError;
-          setProfile(newProfile);
+          if (ensureError) throw ensureError;
+          setProfile(ensuredProfile as UserProfile);
         } else {
           setProfile(data);
         }
