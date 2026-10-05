@@ -1,289 +1,193 @@
-# 🔪 SRAP - UNFILTERED REALITIES
+# SRAP — UNFILTERED REALITIES
 
-**"Your heart wants to change the world, your body asks for rest, and your head knows that tomorrow it's time to pay the rent."**
+SRAP is a gamified self-assessment platform built around a tricentric reflection model: **HEAD · HEART · BODY**.
 
----
+The product combines structured reflection, AI-assisted analysis, daily progress and controlled gamification. It is a reflection tool, not a medical or mental-health diagnostic system.
 
-SRAP is a gamified existential self-assessment platform. It combines brutal psychology, raw philosophy, and RPG game mechanics to create a personal growth system without self-deception.
+## Production architecture
 
-Powered by **Google Gemini AI**, **Supabase**, and **React**, SRAP doesn't pat you on the back. It shows you the map of your internal battlefield and forces you to choose which center you are going to sacrifice today.
+```
+Browser
+  │
+  ├── Authenticated Supabase client
+  │
+  ├── srap-analysis Edge Function
+  │       ├── authenticated user
+  │       ├── origin validation
+  │       ├── payload validation
+  │       ├── daily AI quota
+  │       └── Gemini API
+  │
+  └── PostgreSQL RPC
+          ├── complete_evaluation()
+          ├── complete_tricentric_practice()
+          ├── XP / level
+          ├── streak
+          └── achievements
 
----
-
-## TECH STACK
-
-**Frontend:**
-- React 19 + TypeScript
-- TailwindCSS (dark, brutal, responsive design)
-- Vite (ultra-fast build)
-
-**Backend:**
-- Supabase (Auth, Database, Edge Functions)
-- PostgreSQL with RLS (Row Level Security)
-- Supabase Edge Functions (Deno runtime)
-
-**AI:**
-- Google Gemini 2.0 Flash (cynical analysis in <2s)
-- API key protected in the backend
-
-**Gamification:**
-- XP and levels system (1-10)
-- Unlockable achievements
-- Daily streak (streak tracking)
-- Real-time progress dashboard
-
----
-
-## INSTALLATION AND CONFIGURATION
-
-### 1. Clone Repository
-```bash
-git clone https://github.com/your-user/srap-unfiltered-realities.git
-cd srap-unfiltered-realities
+Rule:
+CLIENT REQUESTS → SERVER DECIDES → DATABASE GUARANTEES
 ```
 
-### 2. Install Dependencies
-```bash
-npm install
-```
+## Production hardening
 
-### 3. Configure Environment Variables
-Create a `.env` file in the project root:
+The production branch protects the business-critical state at the database boundary:
+
+- XP, level, streak and evaluation counters cannot be changed directly by the browser.
+- Evaluation completion is transactional.
+- One evaluation per UTC day is enforced by a database unique index.
+- Tricentric practice is persisted instead of being a visual-only interaction.
+- Tricentric practice is limited to one completion per UTC day.
+- Achievement rewards are granted only on the first unlock.
+- Legacy XP-mutating RPCs were removed.
+- Privileged functions use explicit execution grants and a controlled search path.
+- AI requests require an authenticated user.
+- AI request payloads have size and shape validation.
+- AI analysis has a daily per-user quota.
+- Gemini credentials remain server-side.
+- The browser prefers the Supabase publishable key.
+- Production headers include clickjacking, MIME-sniffing and referrer protections.
+- Canonical URL, robots and sitemap point to the current Vercel deployment.
+
+## Stack
+
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS
+- Supabase Auth
+- PostgreSQL + RLS
+- Supabase Edge Functions
+- Google Gemini
+- Vercel
+
+## Environment
+
+Frontend:
 
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your_anon_key_here
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
+VITE_SITE_URL=https://tricentric-integration-lyart.vercel.app
+VITE_ENABLE_LOCAL_AI=false
 ```
 
-The `GEMINI_API_KEY` must be configured in the **Supabase Edge Function Secrets**, not in `.env`.
+Edge Function secrets:
 
-### 4. Supabase Setup
-
-#### A. Create Supabase Project
-1. Go to [supabase.com](https://supabase.com)
-2. Create a new project
-3. Copy `Project URL` and `anon/public key` to your `.env`
-
-#### B. Run Database Migration
-Execute the SQL in the Supabase SQL Editor:
-```sql
--- See full content in the migration file
--- (available in the project as supabase/migrations/...)
+```text
+APP_ORIGIN=https://tricentric-integration-lyart.vercel.app
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-3.8-flash
 ```
 
-Or use the Supabase CLI:
+Never place Gemini or Supabase secret keys in `VITE_*` variables.
+
+## Database deployment
+
+Migrations live under:
+
+```
+supabase/migrations/
+```
+
+Production workflow:
+
 ```bash
+supabase migration list
 supabase db push
+supabase functions deploy srap-analysis
 ```
 
-#### C. Deploy Edge Function
-The Edge Function `srap-analysis` is already created. To deploy it:
+Do not make untracked production schema changes directly in the Dashboard. Keep production schema changes in migrations.
+
+## AI
+
+The cloud analysis endpoint uses an authenticated Supabase Edge Function as the security boundary.
+
+The optional browser-local path uses Chrome's current Prompt API through `window.LanguageModel`. It is disabled by default:
+
 ```bash
-# (This is done automatically via MCP tools in development)
+VITE_ENABLE_LOCAL_AI=false
 ```
 
-#### D. Configure Gemini API Key
-1. Get your API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Configure it as a secret in Supabase:
-```bash
-supabase secrets set GEMINI_API_KEY=your_key_here
-```
+This keeps the production behavior deterministic while allowing local AI to be enabled deliberately when browser support is verified.
 
-### 5. Run in Development
-```bash
-# npm run dev
-```
+## Gamification
 
-The app will be available at `http://localhost:3000`
+Evaluation XP follows the existing SRAP model:
 
-### 6. Build for Production
+- Base evaluation: 50 XP
+- Streak bonus: 10 XP × current streak day
+- Honest synthesis: +50 XP
+- Achievement rewards: awarded once per achievement
+- Levels: 1–10
+
+The database is authoritative for all persisted values.
+
+## UX and accessibility
+
+The interface includes:
+
+- keyboard-visible focus states
+- reduced-motion support
+- accessible buttons and form controls
+- ARIA status/progress patterns
+- modal Escape handling
+- modal focus restoration and trapping
+- persisted tricentric reflections
+- clear loading/error states
+
+Somatic language is presented as **reflection prompts**, not medical conclusions.
+
+## SEO
+
+Production baseline:
+
+- Spanish document language
+- static title and description
+- canonical URL
+- Open Graph metadata
+- Twitter metadata
+- robots.txt
+- sitemap.xml
+- web manifest
+- Vercel security headers
+
+## Verification
+
+Before promotion:
+
 ```bash
+npm run typecheck
 npm run build
-npm run preview  # Build preview
+npm run verify
 ```
 
----
+Required functional checks:
 
-## ARCHITECTURE
+1. Sign in.
+2. Complete an evaluation.
+3. Confirm XP and streak change once.
+4. Submit the same evaluation again and confirm it is rejected.
+5. Complete tricentric practice.
+6. Repeat it the same day and confirm it is rejected.
+7. Confirm the tricentric achievement reward is not repeatable.
+8. Request AI analysis while authenticated.
+9. Confirm unauthenticated AI requests are rejected.
+10. Confirm the daily AI quota is enforced.
 
-See `ARCHITECTURE.md` for the full technical blueprint.
+## Deployment
 
-**Simplified Flow:**
-```
-User completes exam
-  ↓
-Frontend sends request to Edge Function
-  ↓
-Edge Function calls Gemini API (secure key)
-  ↓
-AI analyzes with brutal prompt
-  ↓
-Response is saved in Supabase
-  ↓
-XP, levels, and achievements are updated
-  ↓
-Dashboard refreshes with new progress
-```
+Frontend target:
 
----
+**Vercel — `tricentric-integration`**
 
-## SRAP PHILOSOPHY
+Current deployment domain:
 
-### The 3 Centers
+`https://tricentric-integration-lyart.vercel.app/`
 
-1. **HEAD** (Mind/Control)
-   - Promises: Total control
-   - Demands: Accept chaos and act anyway
+Supabase is the production backend boundary. Do not connect this product to unrelated Chalamandra projects.
 
-2. **HEART** (Emotion/Meaning)
-   - Promises: Purpose and sense
-   - Demands: Tolerate emptiness and build sense
+## License
 
-3. **BODY** (Physical/Pleasure)
-   - Promises: Constant pleasure
-   - Demands: Endure pain and move anyway
-
-### The Principle of Sacrifice
-
-There is no "perfect balance". Every day you must consciously choose which center to sacrifice so that the other two survive. SRAP forces you to admit that choice without self-deception.
-
-### Existential Gamification
-
-- **Base XP:** 50 per assessment
-- **Streak Bonus:** +10 XP per consecutive day
-- **Levels:** 1 to 10 (from "Lost Novice" to "Supreme Decoder")
-- **Achievements:** From "First Blood" to "Master of Reality"
-
-Progress is measurable. Reality is quantifiable. Self-deception, impossible.
-
----
-
-## FEATURES
-
-- Daily assessments of the 3 centers
-- Brutal and direct AI analysis
-- Gamified progress system
-- Full assessment history
-- Statistics dashboard
-- Daily streak with bonuses
-- Unlockable achievements
-- Micro-interactions and visual feedback
-- Responsive design (mobile-first)
-- Default dark mode (reality is not bright)
-
----
-
-## SECURITY
-
-- **Row Level Security (RLS)** in all tables
-- Gemini API key never exposed in the frontend
-- Authentication via Supabase Auth
-- Data validation in frontend and backend
-- CORS correctly configured in Edge Functions
-
----
-
-## DEPLOYMENT
-
-### Vercel (Recommended for Frontend)
-```bash
-npm run build
-vercel --prod
-```
-
-### Netlify
-```bash
-npm run build
-netlify deploy --prod --dir=dist
-```
-
-### Supabase Edge Functions
-Already deployed automatically via MCP tools.
-
----
-
-## CONTRIBUTING
-
-This project is born from the **SRAP Chalamandra Master methodology**. If you want to contribute:
-
-1. Fork the repository
-2. Create a branch with your feature
-3. Make sure the build passes
-4. Submit a PR with a brutal description of changes
-
-Contribution principles:
-- Clean and modular code
-- No technical self-deception
-- No unnecessary features
-- Reality > Illusion
-
----
-
-## LICENSE
-
-MIT License. Use, modify, destroy. Reality has no copyright.
-
----
-
-## CONTACT AND CREDITS
-
-**Created by:** Senior SRAP Team (Master Chalamandra Decoder)
-
-**Technologies:**
-- React Team
-- Supabase Team
-- Google Gemini Team
-- Tailwind Labs
-
-**Philosophy:**
-- Gurdjieff (The 3 Centers)
-- Nietzsche (Raw realities)
-- Estoicismo (Active acceptance)
-- RPG Mechanics (Measurable gamification)
-
----
-
-**REMEMBER:** This is not a "high vibe" app. It is a triage simulator for the soul. If you are looking for comfort, go somewhere else. If you seek measurable truth, welcome to SRAP.
-
-
-## PROJECT STRUCTURE (OPTIMIZED)
-
-```bash
-src/
-  pages/
-    HomePage.tsx
-  components/
-    sections/
-    features/
-      exam/
-      gamification/
-      tricentric/
-    ui/
-  hooks/
-  lib/
-  styles/
-  types/
-```
-
-## VERCEL NOTES
-
-- `vercel.json` is included for Vite-compatible output (`dist`).
-- Configure `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in Vercel Project Settings → Environment Variables.
-- Build command: `npm run build`.
-- (Optional but recommended) define `VITE_SITE_URL` in Vercel for canonical/social absolute URLs.
-
-
-## UX + SEO IMPLEMENTATION
-
-- Accessibility and UX:
-  - Skip-link to main content.
-  - Keyboard-visible focus states.
-  - Reduced-motion support (`prefers-reduced-motion`).
-  - Accessible modal behavior (`role=dialog`, ESC key, overlay close).
-  - `aria-live` loading states.
-- SEO:
-  - Dynamic SEO tags in app runtime (`title`, `description`, OpenGraph, Twitter, canonical).
-  - Static SEO baseline in `index.html`.
-  - `robots.txt`, `sitemap.xml`, `site.webmanifest`.
-  - Share image at `public/og-image.svg`.
-
+MIT.

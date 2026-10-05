@@ -1,0 +1,2 @@
+DROP POLICY IF EXISTS "AI usage is server managed" ON public.ai_usage_daily;
+CREATE POLICY "AI usage is server managed" ON public.ai_usage_daily FOR ALL TO anon, authenticated USING (false) WITH CHECK (false);

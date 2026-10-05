@@ -1,0 +1,2 @@
+[functions.srap-analysis]
+verify_jwt = false
