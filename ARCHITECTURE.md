@@ -52,7 +52,7 @@ Authoritative:
 Browser:
 
 - may read its own profile
-- may create its own empty profile
+- may bootstrap its own empty profile through `ensure_user_profile()`
 - may not mutate gamification counters directly
 
 ### evaluations
@@ -141,7 +141,7 @@ The Gemini API key never enters the browser bundle.
 
 Default production model:
 
-gemini-3.6-flash
+gemini-3.8-flash
 
 The model can be changed through the server-side GEMINI_MODEL configuration without changing client code.
 
