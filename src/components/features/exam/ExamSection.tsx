@@ -3,7 +3,6 @@ import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { supabase } from '@/lib/supabase';
-import { calculateXPGained, shouldUnlockAchievement } from '@/lib/gamification';
 import type { CenterType } from '@/types';
 
 interface ExamSectionProps {
@@ -76,59 +75,32 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
         return;
       }
 
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (!profile) {
-        await supabase.from('user_profiles').insert({ id: user.id });
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-      const lastEvalDate = profile?.last_evaluation_date;
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-      const isConsecutiveDay = lastEvalDate === yesterday;
-      const newStreak = lastEvalDate === today ? (profile?.streak_days || 0) : (isConsecutiveDay ? (profile?.streak_days || 0) + 1 : 1);
-
-      // Check for honest synthesis (simple heuristic for now)
-      const isHonest = synthesis.length > 50;
-      const xpGained = calculateXPGained(newStreak, isHonest);
-      const newXP = (profile?.experience_points || 0) + xpGained;
-      const newTotalEvals = (profile?.total_evaluations || 0) + 1;
-
-      await supabase.from('evaluations').insert({
-        user_id: user.id,
-        bleeding_center: bleeding,
-        sacrifice_center: sacrifice,
-        oxygen_actions: oxygen,
-        synthesis_text: synthesis,
-        ai_analysis: aiAnalysis || '',
-        xp_earned: xpGained,
+      const { data, error } = await supabase.rpc('complete_evaluation', {
+        p_bleeding_center: bleeding,
+        p_sacrifice_center: sacrifice,
+        p_oxygen_actions: oxygen,
+        p_synthesis_text: synthesis.trim(),
+        p_ai_analysis: aiAnalysis || '',
+        p_ai_synthesis_feedback: null,
       });
 
-      await supabase.from('user_profiles').update({
-        experience_points: newXP,
-        total_evaluations: newTotalEvals,
-        streak_days: newStreak,
-        last_evaluation_date: today,
-      }).eq('id', user.id);
-
-      const achievementKeys = ['first_blood', 'week_warrior', 'ten_evaluations', 'level_5'];
-      if (isHonest) achievementKeys.push('honest_synthesis');
-
-      for (const key of achievementKeys) {
-        if (shouldUnlockAchievement(key, { totalEvaluations: newTotalEvals, currentLevel: 1, streakDays: newStreak })) {
-          const { data: achievement } = await supabase.from('achievements').select('id').eq('key', key).maybeSingle();
-          if (achievement) {
-            await supabase.from('user_achievements').upsert({
-              user_id: user.id,
-              achievement_id: achievement.id,
-            });
-          }
+      if (error) {
+        if (error.code === '23505') {
+          alert("Today's evaluation has already been completed.");
+        } else {
+          throw error;
         }
+        return;
       }
+
+      const result = data as {
+        xp_earned: number;
+        experience_points: number;
+        current_level: number;
+        streak_days: number;
+        total_evaluations: number;
+        achievement_xp: number;
+      };
 
       setBleeding('');
       setSacrifice('');
@@ -136,10 +108,9 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
       setSynthesis('');
       setAiAnalysis(null);
 
-      alert(`Evaluation saved. +${xpGained} XP earned.`);
+      alert(`Evaluation saved. +${result.xp_earned} XP earned.`);
 
       if (onEvaluationComplete) onEvaluationComplete();
-
     } catch (error) {
       console.error('Error saving evaluation:', error);
       alert('Error saving evaluation.');
@@ -147,7 +118,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
       setSaving(false);
     }
   };
-  
+
   const OXYGEN_OPTIONS = [
     "5 minutes of conscious breathing (Body)",
     "Write 1 unfiltered raw truth (Heart)",
