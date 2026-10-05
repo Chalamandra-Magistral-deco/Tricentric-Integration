@@ -56,6 +56,7 @@ export function shouldUnlockAchievement(
     'level_5': userStats.currentLevel >= 5,
     'level_10': userStats.currentLevel >= 10,
     'ten_evaluations': userStats.totalEvaluations >= 10,
+    'honest_synthesis': false,
   };
 
   return conditions[achievementKey] || false;
