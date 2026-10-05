@@ -20,7 +20,7 @@ interface AnalyzeSynthesisPayload {
 type RequestPayload = AnalyzeMiseryPayload | AnalyzeSynthesisPayload;
 
 function corsHeaders(origin: string | null): HeadersInit {
-  const allowedOrigin = Deno.env.get("APP_ORIGIN");
+  const allowedOrigin = "https://tricentric-integration-lyart.vercel.app";
 
   return {
     "Access-Control-Allow-Origin":
@@ -157,8 +157,8 @@ export default {
       return jsonResponse({ error: "Method not allowed" }, 405, origin);
     }
 
-    const configuredOrigin = Deno.env.get("APP_ORIGIN");
-    if (!configuredOrigin || origin !== configuredOrigin) {
+    const configuredOrigin = "https://tricentric-integration-lyart.vercel.app";
+    if (origin !== configuredOrigin) {
       return jsonResponse({ error: "Origin not allowed" }, 403, origin);
     }
 
