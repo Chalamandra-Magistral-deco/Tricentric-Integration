@@ -206,6 +206,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
               <select
                 value={sacrifice}
                 onChange={e => setSacrifice(e.target.value as CenterType)}
+                aria-label="Today's sacrifice"
                 className="w-full bg-black/60 text-white p-4 rounded-xl border border-red-600/50 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all text-lg"
               >
                 <option value="">Choose today's sacrifice...</option>
@@ -247,6 +248,8 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
                     id="synthesis-text"
                     value={synthesis}
                     onChange={e => setSynthesis(e.target.value)}
+                    aria-label="Raw integration synthesis"
+                    maxLength={5000}
                     placeholder='Write your realistic synthesis. Example: "Today the body bleeds most. I will sacrifice mental control (head) to give 10 minutes of rest to the body. The heart will wait until tomorrow."'
                     className="w-full h-40 bg-black/40 border border-yellow-600/50 rounded-2xl p-6 text-white text-lg focus:outline-none resize-none focus:ring-2 focus:ring-yellow-400/50 transition-all placeholder:text-gray-600"
                 ></textarea>
