@@ -1,13 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-// CORS headers - required for client access
+const allowedOrigin = Deno.env.get("APP_ORIGIN") ?? "";
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Origin": allowedOrigin || "null",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Client-Info, Apikey",
+  "Vary": "Origin",
 };
 
-// Type definitions for request payloads
 interface AnalyzeMiseryPayload {
   type: "misery";
   bleeding: string;
@@ -22,16 +22,60 @@ interface AnalyzeSynthesisPayload {
 
 type RequestPayload = AnalyzeMiseryPayload | AnalyzeSynthesisPayload;
 
-// Gemini API interaction
+const MAX_TEXT = 5000;
+const MAX_OXYGEN_ITEMS = 10;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function validatePayload(value: unknown): RequestPayload {
+  if (!isRecord(value) || (value.type !== "misery" && value.type !== "synthesis")) {
+    throw new Error("Invalid request type");
+  }
+
+  if (value.type === "misery") {
+    const { bleeding, sacrifice, oxygen } = value;
+    if (
+      typeof bleeding !== "string" ||
+      !["head", "heart", "body"].includes(bleeding) ||
+      typeof sacrifice !== "string" ||
+      !["head", "heart", "body"].includes(sacrifice) ||
+      !Array.isArray(oxygen) ||
+      oxygen.length > MAX_OXYGEN_ITEMS ||
+      oxygen.some((item) => typeof item !== "string" || item.length > 500)
+    ) {
+      throw new Error("Invalid misery payload");
+    }
+
+    return {
+      type: "misery",
+      bleeding,
+      sacrifice,
+      oxygen,
+    };
+  }
+
+  if (typeof value.synthesis !== "string" || value.synthesis.trim().length < 1 || value.synthesis.length > MAX_TEXT) {
+    throw new Error("Invalid synthesis payload");
+  }
+
+  return {
+    type: "synthesis",
+    synthesis: value.synthesis.trim(),
+  };
+}
+
 async function callGeminiAPI(prompt: string, systemInstruction: string): Promise<string> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
+  const model = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
 
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY not configured in Edge Function secrets");
   }
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -39,7 +83,7 @@ async function callGeminiAPI(prompt: string, systemInstruction: string): Promise
         contents: [{ parts: [{ text: prompt }] }],
         systemInstruction: { parts: [{ text: systemInstruction }] },
         generationConfig: {
-          temperature: 0.9,
+          temperature: 0.7,
           maxOutputTokens: 500,
         },
       }),
@@ -47,97 +91,97 @@ async function callGeminiAPI(prompt: string, systemInstruction: string): Promise
   );
 
   if (!response.ok) {
-    const error = await response.text();
-    console.error("Gemini API error:", error);
-    throw new Error(`Gemini API failed: ${response.status}`);
+    console.error("Gemini API status:", response.status);
+    throw new Error("AI provider request failed");
   }
 
   const data = await response.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text ||
-         "The AI refuses to analyze such a level of contradiction.";
+  const analysis = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (typeof analysis !== "string" || !analysis.trim()) {
+    throw new Error("AI provider returned no analysis");
+  }
+
+  return analysis.slice(0, 10000);
 }
 
-// Main handler
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response(null, { status: 200, headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return new Response(JSON.stringify({ error: "Method not allowed" }), {
+      status: 405,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const authorization = req.headers.get("Authorization");
+  if (!authorization?.startsWith("Bearer ")) {
+    return new Response(JSON.stringify({ error: "Authentication required" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
-    // Parse request body
-    const payload: RequestPayload = await req.json();
+    const payload = validatePayload(await req.json());
+
+    const systemInstruction =
+      "You are SRAP-AI. Be direct, reflective, and useful. Do not present subjective body sensations as medical diagnoses. Do not claim certainty about a person's mental or physical condition.";
 
     let prompt = "";
-    const systemInstruction = "You are SRAP-AI. You don't use friendly emojis. You use metaphors of war and survival.";
 
-    // Build prompt based on type
     if (payload.type === "misery") {
       prompt = `
-        Act as a brutally honest and cynical AI called SRAP-AI.
-        Analyze the user's current situation without offering false comfort.
+Act as SRAP-AI and analyze the user's current reflection without false comfort.
 
-        User data:
-        - Center that bleeds most (suffers): ${payload.bleeding}
-        - Sacrifice chosen today: ${payload.sacrifice}
-        - Oxygen actions (relief): ${payload.oxygen.join(', ') || 'None'}
+User data:
+- Center that feels most affected: ${payload.bleeding}
+- Center selected as today's sacrifice: ${payload.sacrifice}
+- Oxygen actions: ${payload.oxygen.join(", ") || "None"}
 
-        Your task:
-        1. Confirm why their choice of sacrifice is painful but necessary.
-        2. Warn about the consequences of ignoring the other centers.
-        3. Give a single-sentence pithy verdict.
+Task:
+1. Explain the trade-off in practical terms.
+2. Identify a consequence the user should consider.
+3. Give one concise verdict.
 
-        Use a dark, philosophical, and direct tone. No "everything will be fine."
-      `;
-    } else if (payload.type === "synthesis") {
-      prompt = `
-        Act as a brutally honest and cynical AI called SRAP-AI.
-        Analyze the user's synthesis of their situation.
-
-        User synthesis: ${payload.synthesis}
-
-        Your task:
-        1. Evaluate if the synthesis is honest or self-deception.
-        2. If honest, confirm the toughness of the choice.
-        3. If self-deception, destroy it with cold logic.
-        4. End with a sharp question that forces them to reflect.
-
-        Use a dark and direct tone. Be relentless but useful.
-      `;
+Use a dark, philosophical, direct tone, but frame interpretations as reflections rather than facts.
+`;
     } else {
-      throw new Error("Invalid request type");
+      prompt = `
+Act as SRAP-AI and analyze this user synthesis.
+
+User synthesis:
+---BEGIN USER TEXT---
+${payload.synthesis}
+---END USER TEXT---
+
+Task:
+1. Identify whether the reasoning appears internally coherent.
+2. Point out one possible self-deception or blind spot, if present.
+3. End with one sharp reflective question.
+
+Be direct, useful, and avoid diagnosing the user.
+`;
     }
 
-    // Call Gemini API
     const analysis = await callGeminiAPI(prompt, systemInstruction);
 
-    // Return response
-    return new Response(
-      JSON.stringify({ analysis }),
-      {
-        status: 200,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
+    return new Response(JSON.stringify({ analysis }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (error) {
     console.error("Edge Function error:", error);
 
-    return new Response(
-      JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
-        analysis: "Connection error. Even the AI has abandoned you today."
-      }),
-      {
-        status: 500,
-        headers: {
-          ...corsHeaders,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const message = error instanceof Error ? error.message : "Unknown error";
+    const status = message.startsWith("Invalid ") ? 400 : 500;
+
+    return new Response(JSON.stringify({ error: message }), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
