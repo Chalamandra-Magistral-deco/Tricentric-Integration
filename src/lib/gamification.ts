@@ -47,6 +47,7 @@ export function shouldUnlockAchievement(
     totalEvaluations: number;
     currentLevel: number;
     streakDays: number;
+    hasHonestSynthesis?: boolean;
   }
 ): boolean {
   const conditions: Record<string, boolean> = {
@@ -56,7 +57,7 @@ export function shouldUnlockAchievement(
     'level_5': userStats.currentLevel >= 5,
     'level_10': userStats.currentLevel >= 10,
     'ten_evaluations': userStats.totalEvaluations >= 10,
-    'honest_synthesis': false,
+    'honest_synthesis': Boolean(userStats.hasHonestSynthesis),
   };
 
   return conditions[achievementKey] || false;
