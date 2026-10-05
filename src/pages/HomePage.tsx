@@ -5,6 +5,7 @@ import RealityMapSection from '@/components/sections/RealityMapSection';
 import ExamSection from '@/components/features/exam/ExamSection';
 import TricentricIntegration from '@/components/features/tricentric/TricentricIntegration';
 import GamificationDashboard from '@/components/features/gamification/GamificationDashboard';
+import AuthPanel from '@/components/auth/AuthPanel';
 import SeoHead from '@/components/seo/SeoHead';
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/hooks/useProfile';
@@ -58,6 +59,7 @@ const HomePage: React.FC = () => {
 
       <div className="min-h-screen selection:bg-red-500 selection:text-white">
         <HeaderSection />
+        <AuthPanel userId={userId} />
 
         <main id="main-content">
           {userId && profile && (
