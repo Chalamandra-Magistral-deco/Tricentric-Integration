@@ -44,6 +44,9 @@ const AuthPanel: React.FC<AuthPanelProps> = ({ userId }) => {
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
       });
 
       if (error) throw error;
