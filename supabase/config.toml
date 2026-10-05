@@ -1,0 +1,4 @@
+project_id = "tricentric-integration"
+
+[functions.srap-analysis]
+verify_jwt = false
