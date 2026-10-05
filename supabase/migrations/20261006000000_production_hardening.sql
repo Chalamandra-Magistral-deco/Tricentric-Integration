@@ -98,6 +98,37 @@ $$;
 REVOKE ALL ON FUNCTION public.consume_ai_quota(uuid, integer) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.consume_ai_quota(uuid, integer) TO service_role;
 
+-- Safe profile bootstrap for the authenticated browser.
+CREATE OR REPLACE FUNCTION public.ensure_user_profile()
+RETURNS public.user_profiles
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $
+DECLARE
+  v_user_id uuid := auth.uid();
+  v_profile public.user_profiles%ROWTYPE;
+BEGIN
+  IF v_user_id IS NULL THEN
+    RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
+  END IF;
+
+  INSERT INTO public.user_profiles (id)
+  VALUES (v_user_id)
+  ON CONFLICT (id) DO NOTHING;
+
+  SELECT *
+  INTO v_profile
+  FROM public.user_profiles
+  WHERE id = v_user_id;
+
+  RETURN v_profile;
+END;
+$;
+
+REVOKE ALL ON FUNCTION public.ensure_user_profile() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.ensure_user_profile() TO authenticated, service_role;
+
 -- Single authoritative evaluation transaction.
 CREATE OR REPLACE FUNCTION public.complete_evaluation(
   p_bleeding_center text,
