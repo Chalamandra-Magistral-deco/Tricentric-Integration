@@ -308,6 +308,7 @@ DECLARE
   v_practice_id uuid;
   v_achievement_id uuid;
   v_unlocked boolean := false;
+  v_inserted integer := 0;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Authentication required' USING ERRCODE = '42501';
@@ -368,7 +369,8 @@ BEGIN
     VALUES (v_user_id, v_achievement_id)
     ON CONFLICT (user_id, achievement_id) DO NOTHING;
 
-    GET DIAGNOSTICS v_unlocked = ROW_COUNT;
+    GET DIAGNOSTICS v_inserted = ROW_COUNT;
+    v_unlocked := v_inserted = 1;
     IF v_unlocked THEN
       UPDATE public.user_profiles
       SET experience_points = experience_points + 150,
