@@ -77,7 +77,7 @@ Edge Function secrets:
 ```text
 APP_ORIGIN=https://tricentric-integration-lyart.vercel.app
 GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.6-flash
+GEMINI_MODEL=gemini-3.8-flash
 ```
 
 Never place Gemini or Supabase secret keys in `VITE_*` variables.
