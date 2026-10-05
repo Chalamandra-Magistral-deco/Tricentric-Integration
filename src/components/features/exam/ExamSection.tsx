@@ -16,6 +16,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
   const [synthesis, setSynthesis] = useState<string>('');
 
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+  const [aiSynthesisFeedback, setAiSynthesisFeedback] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -56,6 +57,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
     });
 
     setAiAnalysis(result);
+    setAiSynthesisFeedback(null);
     setIsModalOpen(true);
   };
 
@@ -81,7 +83,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
         p_oxygen_actions: oxygen,
         p_synthesis_text: synthesis.trim(),
         p_ai_analysis: aiAnalysis || '',
-        p_ai_synthesis_feedback: null,
+        p_ai_synthesis_feedback: aiSynthesisFeedback,
       });
 
       if (error) {
@@ -107,6 +109,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
       setOxygen([]);
       setSynthesis('');
       setAiAnalysis(null);
+      setAiSynthesisFeedback(null);
 
       alert(`Evaluation saved. +${result.xp_earned} XP earned.`);
 
