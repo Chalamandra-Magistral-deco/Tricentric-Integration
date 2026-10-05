@@ -40,6 +40,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
   const [heartText, setHeartText] = useState('');
   const [bodyText, setBodyText] = useState('');
   const [synthesis, setSynthesis] = useState('');
+  const [breathingActive, setBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const breathingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -61,6 +62,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
 
   const toggleBreathing = () => {
     if (!breathingTimer.current) {
+      setBreathingActive(true);
       breathingTimer.current = setInterval(() => {
         setBreathingPhase((prev) => {
           if (prev === 'inhale') return 'hold';
@@ -73,6 +75,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
 
     clearInterval(breathingTimer.current);
     breathingTimer.current = null;
+    setBreathingActive(false);
     setBreathingPhase('inhale');
   };
 
@@ -83,6 +86,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
     }
 
     setLoading(true);
+    const checkoutWindow = kofiUrl ? window.open('', '_blank', 'noopener,noreferrer') : null;
 
     try {
       const { data, error } = await supabase.rpc('complete_tricentric_practice', {
@@ -103,6 +107,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
       await refreshProfile();
 
       const result = data as { practice_id: string; xp_awarded: number; achievement_unlocked: boolean };
+      if (checkoutWindow && kofiUrl) checkoutWindow.location.href = kofiUrl;
 
       setHeadText('');
       setHeartText('');
@@ -115,9 +120,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
           : `Practice saved. +${result.xp_awarded} XP earned.`
       );
 
-      if (kofiUrl) {
-        window.open(kofiUrl, '_blank', 'noopener,noreferrer');
-      }
+      if (checkoutWindow && !kofiUrl) checkoutWindow.close();
     } catch (err) {
       console.error(err);
       alert('Error saving practice. Please try again.');
@@ -181,7 +184,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
           onClick={toggleBreathing}
           className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold py-3 px-8 rounded-lg transition-all mb-4"
         >
-          {breathingTimer.current ? 'Stop Practice' : 'Start Practice'}
+          {breathingActive ? 'Stop Practice' : 'Start Practice'}
         </button>
       </div>
 
