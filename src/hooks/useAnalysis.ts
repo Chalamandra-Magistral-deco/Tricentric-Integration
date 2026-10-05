@@ -43,6 +43,8 @@ export function useAnalysis() {
       : 'You are SRAP-AI. Evaluate clarity versus self-deception. Be direct and useful. Do not diagnose or present speculation as fact.';
 
   const analyzeWithLocalAI = async (request: AnalysisRequest): Promise<string | null> => {
+    if (import.meta.env.VITE_ENABLE_LOCAL_AI !== 'true') return null;
+
     const LanguageModel = window.LanguageModel;
     if (!LanguageModel) return null;
 
