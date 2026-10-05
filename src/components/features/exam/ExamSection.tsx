@@ -57,7 +57,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
     });
 
     setAiAnalysis(result);
-    setAiSynthesisFeedback(null);
+    setAiSynthesisFeedback(result);
     setIsModalOpen(true);
   };
 
