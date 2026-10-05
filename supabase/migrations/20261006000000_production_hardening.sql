@@ -72,7 +72,7 @@ CREATE OR REPLACE FUNCTION public.consume_ai_quota(
 RETURNS boolean
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   v_today date := (now() AT TIME ZONE 'UTC')::date;
@@ -103,7 +103,7 @@ CREATE OR REPLACE FUNCTION public.ensure_user_profile()
 RETURNS public.user_profiles
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $
 DECLARE
   v_user_id uuid := auth.uid();
@@ -149,7 +149,7 @@ RETURNS TABLE (
 )
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   v_user_id uuid := auth.uid();
@@ -331,7 +331,7 @@ CREATE OR REPLACE FUNCTION public.complete_tricentric_practice(
 RETURNS TABLE (practice_id uuid, xp_awarded integer, achievement_unlocked boolean)
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public, pg_temp
+SET search_path = ''
 AS $$
 DECLARE
   v_user_id uuid := auth.uid();
