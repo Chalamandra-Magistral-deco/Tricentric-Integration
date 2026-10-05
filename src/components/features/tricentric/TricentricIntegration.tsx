@@ -36,6 +36,10 @@ const CENTERS = [
 export default function TricentricIntegration({ kofiUrl }: Props) {
   const [userId, setUserId] = useState<string>();
   const [loading, setLoading] = useState(false);
+  const [headText, setHeadText] = useState('');
+  const [heartText, setHeartText] = useState('');
+  const [bodyText, setBodyText] = useState('');
+  const [synthesis, setSynthesis] = useState('');
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const [intervalId, setIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
 
@@ -74,7 +78,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
     setBreathingPhase('inhale');
   };
 
-    const finalizePractice = async () => {
+  const finalizePractice = async () => {
     if (!userId) {
       alert('Please log in to save your progress.');
       return;
@@ -83,28 +87,36 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
     setLoading(true);
 
     try {
-      // Increment XP
-      const { error: profileError } = await supabase.rpc('increment_xp', {
-        amount: 50,
-        u_id: userId,
+      const { data, error } = await supabase.rpc('complete_tricentric_practice', {
+        p_head: headText.trim(),
+        p_heart: heartText.trim(),
+        p_body: bodyText.trim(),
+        p_synthesis: synthesis.trim(),
       });
 
-      if (profileError) throw profileError;
-
-      // Trigger achievement logic
-      const { error: achievementError } = await supabase.rpc('tricentric_earthquake', {
-        u_id: userId,
-      });
-
-      if (achievementError) console.error('Achievement error:', achievementError);
+      if (error) throw error;
 
       await refreshProfile();
 
-      alert('Practice finalized and progress saved! Redirecting to Kofi for the digital version.');
-      window.open(kofiUrl, '_blank');
+      const result = data as { unlocked: boolean; xp_awarded: number };
+
+      setHeadText('');
+      setHeartText('');
+      setBodyText('');
+      setSynthesis('');
+
+      alert(
+        result.unlocked
+          ? `Practice saved. +${result.xp_awarded} XP earned. Redirecting to the digital version.`
+          : 'Practice saved. The Tricentric achievement was already unlocked.'
+      );
+
+      if (kofiUrl) {
+        window.open(kofiUrl, '_blank', 'noopener,noreferrer');
+      }
     } catch (err) {
       console.error(err);
-      alert('Error saving progress. But the reality is still there.');
+      alert('Error saving practice. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -134,6 +146,14 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
             <textarea
               className={`w-full h-32 p-3 rounded-lg bg-black bg-opacity-40 text-white border outline-none resize-none ${center.textareaClasses}`}
               placeholder={`What does your ${center.name.toLowerCase()} think / feel / sense?...`}
+              value={center.name === 'HEAD' ? headText : center.name === 'HEART' ? heartText : bodyText}
+              onChange={(event) => {
+                const value = event.target.value;
+                if (center.name === 'HEAD') setHeadText(value);
+                else if (center.name === 'HEART') setHeartText(value);
+                else setBodyText(value);
+              }}
+              aria-label={`${center.name} reflection`}
             />
           </div>
         ))}
@@ -166,6 +186,9 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
         <textarea
           className="w-full h-24 bg-black bg-opacity-50 border border-yellow-500 rounded-lg p-4 text-white focus:outline-none mb-6 resize-none"
           placeholder="Integrate the three voices here..."
+          value={synthesis}
+          onChange={(event) => setSynthesis(event.target.value)}
+          aria-label="Integrative synthesis"
         />
         <button
           onClick={finalizePractice}
