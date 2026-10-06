@@ -34,3 +34,6 @@ Thumbs.db
 .vercel
 .env*
 
+supabase/.temp/
+pnpm-lock.yaml
+pnpm-workspace.yaml
