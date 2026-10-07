@@ -7,7 +7,7 @@ const MAX_SYNTHESIS_LENGTH = 5000;
 interface Props {
   userId?: string;
   onPracticeComplete: () => Promise<void>;
-  kofiUrl: string;
+  stripeUrl: string;
 }
 
 const CENTERS = [
@@ -37,7 +37,7 @@ const CENTERS = [
   },
 ] as const;
 
-export default function TricentricIntegration({ userId, onPracticeComplete, kofiUrl }: Props) {
+export default function TricentricIntegration({ userId, onPracticeComplete, stripeUrl }: Props) {
   const [loading, setLoading] = useState(false);
   const [headText, setHeadText] = useState('');
   const [heartText, setHeartText] = useState('');
@@ -88,7 +88,7 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
     }
 
     setLoading(true);
-    const checkoutWindow = kofiUrl ? window.open('', '_blank', 'noopener,noreferrer') : null;
+    const checkoutWindow = stripeUrl ? window.open('', '_blank', 'noopener,noreferrer') : null;
 
     try {
       const { data, error } = await supabase.rpc('complete_tricentric_practice', {
@@ -109,7 +109,7 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
       await onPracticeComplete();
 
       const result = data as { practice_id: string; xp_awarded: number; achievement_unlocked: boolean };
-      if (checkoutWindow && kofiUrl) checkoutWindow.location.href = kofiUrl;
+      if (checkoutWindow && stripeUrl) checkoutWindow.location.href = stripeUrl;
 
       setHeadText('');
       setHeartText('');
@@ -122,7 +122,7 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
           : `Practice saved. +${result.xp_awarded} XP earned.`
       );
 
-      if (checkoutWindow && !kofiUrl) checkoutWindow.close();
+      if (checkoutWindow && !stripeUrl) checkoutWindow.close();
     } catch (err) {
       console.error(err);
       alert('Error saving practice. Please try again.');
