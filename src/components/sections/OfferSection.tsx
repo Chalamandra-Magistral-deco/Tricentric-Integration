@@ -1,6 +1,6 @@
 import React from 'react';
 
-const KOFI_URL = 'https://ko-fi.com/s/7b0236c681';
+const STRIPE_PAYMENT_LINK = import.meta.env.VITE_STRIPE_PAYMENT_LINK ?? '';
 
 const OfferSection: React.FC = () => (
   <section id="offer" className="py-12 px-6 max-w-6xl mx-auto">
@@ -46,14 +46,16 @@ const OfferSection: React.FC = () => (
           >
             COMENZAR EL MAPA
           </a>
-          <a
-            href={KOFI_URL}
-            target="_blank"
-            rel="noreferrer"
-            className="w-full sm:w-auto rounded-xl border border-yellow-600 px-8 py-4 text-center font-black text-yellow-300 transition hover:bg-yellow-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300"
-          >
-            VER LA VERSIÓN DIGITAL
-          </a>
+          {STRIPE_PAYMENT_LINK ? (
+            <a
+              href={STRIPE_PAYMENT_LINK}
+              target="_blank"
+              rel="noreferrer"
+              className="w-full sm:w-auto rounded-xl border border-yellow-600 px-8 py-4 text-center font-black text-yellow-300 transition hover:bg-yellow-900/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-yellow-300"
+            >
+              COMPRAR LA VERSIÓN DIGITAL
+            </a>
+          ) : null}
         </div>
 
         <p className="mt-6 text-xs text-gray-500">
