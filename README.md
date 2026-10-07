@@ -160,9 +160,12 @@ Before promotion:
 
 ```bash
 npm run typecheck
+npm test
 npm run build
 npm run verify
 ```
+
+The automated test suite covers gamification boundaries and the tricentric practice submission flow. Supabase, authentication, quota, and deployment checks below still require a configured integration environment.
 
 Required functional checks:
 

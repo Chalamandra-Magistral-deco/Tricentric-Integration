@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+const MAX_REFLECTION_LENGTH = 3000;
+const MAX_SYNTHESIS_LENGTH = 5000;
+
 interface Props {
   userId?: string;
   onPracticeComplete: () => Promise<void>;
@@ -70,6 +73,13 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
     setBreathingActive(false);
     setBreathingPhase('inhale');
   };
+
+  const canSubmitPractice =
+    [headText, heartText, bodyText].every(
+      (value) => value.trim().length > 0 && value.length <= MAX_REFLECTION_LENGTH,
+    ) &&
+    synthesis.trim().length > 0 &&
+    synthesis.length <= MAX_SYNTHESIS_LENGTH;
 
   const finalizePractice = async () => {
     if (!userId) {
@@ -146,6 +156,7 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
               className={`w-full h-32 p-3 rounded-lg bg-black bg-opacity-40 text-white border outline-none resize-none ${center.textareaClasses}`}
               placeholder={`What does your ${center.name.toLowerCase()} think / feel / sense?...`}
               value={center.name === 'HEAD' ? headText : center.name === 'HEART' ? heartText : bodyText}
+              maxLength={MAX_REFLECTION_LENGTH}
               onChange={(event) => {
                 const value = event.target.value;
                 if (center.name === 'HEAD') setHeadText(value);
@@ -186,12 +197,13 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
           className="w-full h-24 bg-black bg-opacity-50 border border-yellow-500 rounded-lg p-4 text-white focus:outline-none mb-6 resize-none"
           placeholder="Integrate the three voices here..."
           value={synthesis}
+          maxLength={MAX_SYNTHESIS_LENGTH}
           onChange={(event) => setSynthesis(event.target.value)}
           aria-label="Integrative synthesis"
         />
         <button
           onClick={finalizePractice}
-          disabled={loading}
+          disabled={loading || !canSubmitPractice}
           className="bg-red-600 hover:bg-red-700 text-white font-black py-4 px-10 rounded-xl transition-all transform hover:scale-105 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? 'SAVING...' : 'GET THE DIGITAL DECISION MAP'}
