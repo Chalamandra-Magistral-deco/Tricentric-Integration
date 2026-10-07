@@ -194,7 +194,7 @@ export default function TricentricIntegration({ userId, onPracticeComplete, kofi
           disabled={loading}
           className="bg-red-600 hover:bg-red-700 text-white font-black py-4 px-10 rounded-xl transition-all transform hover:scale-105 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {loading ? 'SAVING...' : 'CLAIM DIGITAL VERSION ON KOFI'}
+          {loading ? 'SAVING...' : 'GET THE DIGITAL DECISION MAP'}
         </button>
       </div>
 
