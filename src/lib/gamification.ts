@@ -34,34 +34,7 @@ export function getXPForNextLevel(currentLevel: number): number {
   return LEVEL_CONFIG.XP_CURVE[currentLevel];
 }
 
-export function calculateXPGained(streakDays: number, hasHonestSynthesis: boolean = false): number {
-  let xp = LEVEL_CONFIG.BASE_XP_PER_EVALUATION;
-  xp += streakDays * LEVEL_CONFIG.STREAK_BONUS_PER_DAY;
-  if (hasHonestSynthesis) xp += 50;
-  return xp;
-}
 
-export function shouldUnlockAchievement(
-  achievementKey: string,
-  userStats: {
-    totalEvaluations: number;
-    currentLevel: number;
-    streakDays: number;
-    hasHonestSynthesis?: boolean;
-  }
-): boolean {
-  const conditions: Record<string, boolean> = {
-    'first_blood': userStats.totalEvaluations === 1,
-    'week_warrior': userStats.streakDays >= 7,
-    'month_survivor': userStats.streakDays >= 30,
-    'level_5': userStats.currentLevel >= 5,
-    'level_10': userStats.currentLevel >= 10,
-    'ten_evaluations': userStats.totalEvaluations >= 10,
-    'honest_synthesis': Boolean(userStats.hasHonestSynthesis),
-  };
-
-  return conditions[achievementKey] || false;
-}
 
 export function getLevelTitle(level: number): string {
   const titles = [

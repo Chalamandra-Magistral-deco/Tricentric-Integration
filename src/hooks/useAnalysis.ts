@@ -66,7 +66,7 @@ export function useAnalysis() {
     }
   };
 
-  const analyze = async (request: AnalysisRequest): Promise<string> => {
+  const analyze = async (request: AnalysisRequest): Promise<string | null> => {
     setLoading(true);
     setError(null);
 
@@ -102,7 +102,7 @@ export function useAnalysis() {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Error de conexión con SRAP-AI';
       setError(errorMessage);
-      return 'Conexión fallida. Revisa la configuración o inténtalo de nuevo.';
+      return null;
     } finally {
       setLoading(false);
     }

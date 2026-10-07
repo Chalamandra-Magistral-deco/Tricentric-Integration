@@ -45,11 +45,6 @@ export interface UserAchievement {
   achievement?: Achievement;
 }
 
-export interface AnalysisInput {
-  bleeding: CenterType;
-  sacrifice: CenterType;
-  oxygen: string[];
-}
 
 export interface GamificationState {
   level: number;

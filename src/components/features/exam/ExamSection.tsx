@@ -56,9 +56,11 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
       synthesis,
     });
 
-    setAiAnalysis(result);
-    setAiSynthesisFeedback(result);
-    setIsModalOpen(true);
+    if (result) {
+      setAiAnalysis(result);
+      setAiSynthesisFeedback(result);
+      setIsModalOpen(true);
+    }
   };
 
   const handleSaveEvaluation = async () => {
@@ -261,7 +263,7 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
               <button
                 onClick={handleAcceptReality}
                 disabled={loading}
-                className="w-full sm:w-auto bg-red-700 hover:bg-red-600 text-white font-black py-4 px-10 rounded-2xl transition-all pulse-realidad disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:animate-none shadow-xl transform hover:-translate-y-1 active:translate-y-0"
+                className="w-full sm:w-auto bg-red-700 hover:bg-red-600 text-white font-black py-4 px-10 rounded-2xl transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:animate-none shadow-xl transform hover:-translate-y-1 active:translate-y-0"
               >
                 💀 ACCEPT REALITY
               </button>
