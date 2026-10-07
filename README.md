@@ -75,10 +75,11 @@ VITE_ENABLE_LOCAL_AI=false
 Edge Function secrets:
 
 ```text
-APP_ORIGIN=https://tricentric-integration-lyart.vercel.app
 GEMINI_API_KEY=...
 GEMINI_MODEL=gemini-2.5-flash
 ```
+
+The Edge Function enforces the canonical production origin directly; no `APP_ORIGIN` secret is used.
 
 Never place Gemini or Supabase secret keys in `VITE_*` variables.
 

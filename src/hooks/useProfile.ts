@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { UserProfile } from '@/types';
 
@@ -6,12 +6,21 @@ export function useProfile(userId: string | undefined) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
 
   useEffect(() => {
+    const currentRequestId = ++requestId.current;
+    setProfile(null);
+    setError(null);
+
     if (!userId) {
       setLoading(false);
-      return;
+      return () => {
+        requestId.current += 1;
+      };
     }
+
+    setLoading(true);
 
     async function fetchProfile() {
       try {
@@ -28,30 +37,51 @@ export function useProfile(userId: string | undefined) {
             .rpc('ensure_user_profile');
 
           if (ensureError) throw ensureError;
+          if (currentRequestId !== requestId.current) return;
           setProfile(ensuredProfile as UserProfile);
         } else {
+          if (currentRequestId !== requestId.current) return;
           setProfile(data);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Error loading profile');
+        if (currentRequestId === requestId.current) {
+          setError(err instanceof Error ? err.message : 'Error loading profile');
+        }
       } finally {
-        setLoading(false);
+        if (currentRequestId === requestId.current) setLoading(false);
       }
     }
 
-    fetchProfile();
+    void fetchProfile();
+
+    return () => {
+      requestId.current += 1;
+    };
   }, [userId]);
 
   const refreshProfile = async () => {
     if (!userId) return;
 
-    const { data } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
+    const currentRequestId = requestId.current;
 
-    if (data) setProfile(data);
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+      if (currentRequestId !== requestId.current) return;
+
+      if (!data) throw new Error('Profile not found after refresh');
+      setProfile(data);
+      setError(null);
+    } catch (err) {
+      if (currentRequestId === requestId.current) {
+        setError(err instanceof Error ? err.message : 'Error refreshing profile');
+      }
+    }
   };
 
   return { profile, loading, error, refreshProfile };

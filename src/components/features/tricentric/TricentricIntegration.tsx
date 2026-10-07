@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { useProfile } from '@/hooks/useProfile';
 import { supabase } from '@/lib/supabase';
 
 interface Props {
+  userId?: string;
+  onPracticeComplete: () => Promise<void>;
   kofiUrl: string;
 }
 
@@ -33,8 +34,7 @@ const CENTERS = [
   },
 ] as const;
 
-export default function TricentricIntegration({ kofiUrl }: Props) {
-  const [userId, setUserId] = useState<string>();
+export default function TricentricIntegration({ userId, onPracticeComplete, kofiUrl }: Props) {
   const [loading, setLoading] = useState(false);
   const [headText, setHeadText] = useState('');
   const [heartText, setHeartText] = useState('');
@@ -43,14 +43,6 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
   const [breathingActive, setBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const breathingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id);
-    });
-  }, []);
-
-  const { refreshProfile } = useProfile(userId);
 
   useEffect(() => {
     return () => {
@@ -104,7 +96,7 @@ export default function TricentricIntegration({ kofiUrl }: Props) {
         throw error;
       }
 
-      await refreshProfile();
+      await onPracticeComplete();
 
       const result = data as { practice_id: string; xp_awarded: number; achievement_unlocked: boolean };
       if (checkoutWindow && kofiUrl) checkoutWindow.location.href = kofiUrl;

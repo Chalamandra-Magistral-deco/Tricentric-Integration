@@ -15,7 +15,7 @@ const HomePage: React.FC = () => {
   const [userId, setUserId] = useState<string>();
   const [authChecked, setAuthChecked] = useState(false);
 
-  const { profile, refreshProfile } = useProfile(userId);
+  const { profile, error: profileError, refreshProfile } = useProfile(userId);
   const gamificationState = useGamification(profile);
 
   useEffect(() => {
@@ -62,7 +62,13 @@ const HomePage: React.FC = () => {
         <AuthPanel userId={userId} />
 
         <main id="main-content">
-          {userId && profile && (
+          {userId && profileError && (
+            <p className="mx-auto mb-6 max-w-6xl px-6 text-center text-red-300" role="alert">
+              No se pudo cargar tu perfil: {profileError}
+            </p>
+          )}
+
+          {userId && profile?.id === userId && (
             <section aria-label="Tu progreso" className="max-w-6xl mx-auto px-6 -mt-8">
               <GamificationDashboard state={gamificationState} />
             </section>
@@ -79,7 +85,11 @@ const HomePage: React.FC = () => {
             <ExamSection onEvaluationComplete={refreshProfile} />
           </section>
           <section id="integration">
-            <TricentricIntegration kofiUrl="https://ko-fi.com/s/7b0236c681" />
+            <TricentricIntegration
+              userId={userId}
+              onPracticeComplete={refreshProfile}
+              kofiUrl="https://ko-fi.com/s/7b0236c681"
+            />
           </section>
 
         </main>
