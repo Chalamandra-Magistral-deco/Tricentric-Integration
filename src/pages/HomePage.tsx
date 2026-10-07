@@ -6,6 +6,7 @@ import ExamSection from '@/components/features/exam/ExamSection';
 import TricentricIntegration from '@/components/features/tricentric/TricentricIntegration';
 import GamificationDashboard from '@/components/features/gamification/GamificationDashboard';
 import AuthPanel from '@/components/auth/AuthPanel';
+import OfferSection from '@/components/sections/OfferSection';
 import SeoHead from '@/components/seo/SeoHead';
 import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/hooks/useProfile';
@@ -49,8 +50,8 @@ const HomePage: React.FC = () => {
   return (
     <>
       <SeoHead
-        title="SRAP | Diagnóstico Tricéntrico, Hábitos y Progreso Real"
-        description="SRAP te ayuda a evaluar cabeza, corazón y cuerpo con diagnósticos accionables, síntesis guiada y progreso gamificado en un solo flujo diario."
+        title="SRAP | Mapa Tricéntrico para Decisiones Difíciles"
+        description="Usa el Mapa Tricéntrico para ordenar una decisión difícil desde cabeza, corazón y cuerpo y cerrar con una síntesis y una siguiente acción."
       />
 
       <a href="#main-content" className="skip-link">
@@ -62,6 +63,8 @@ const HomePage: React.FC = () => {
         <AuthPanel userId={userId} />
 
         <main id="main-content">
+          <OfferSection />
+
           {userId && profileError && (
             <p className="mx-auto mb-6 max-w-6xl px-6 text-center text-red-300" role="alert">
               No se pudo cargar tu perfil: {profileError}
