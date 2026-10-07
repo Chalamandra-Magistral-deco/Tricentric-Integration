@@ -15,7 +15,7 @@ function renderPractice(userId: string | null = 'user-1') {
     <TricentricIntegration
       userId={userId ?? undefined}
       onPracticeComplete={onPracticeComplete}
-      kofiUrl=""
+      stripeUrl=""
     />,
   );
 
