@@ -12,6 +12,8 @@ import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/hooks/useProfile';
 import { useGamification } from '@/hooks/useGamification';
 
+const STRIPE_PAYMENT_LINK = import.meta.env.VITE_STRIPE_PAYMENT_LINK ?? '';
+
 const HomePage: React.FC = () => {
   const [userId, setUserId] = useState<string>();
   const [authChecked, setAuthChecked] = useState(false);
@@ -91,7 +93,7 @@ const HomePage: React.FC = () => {
             <TricentricIntegration
               userId={userId}
               onPracticeComplete={refreshProfile}
-              kofiUrl="https://ko-fi.com/s/7b0236c681"
+              stripeUrl={STRIPE_PAYMENT_LINK}
             />
           </section>
 
