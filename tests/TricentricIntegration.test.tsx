@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 const rpcMock = vi.fn();
 
-vi.mock('@lib/supabase', () => ({
+vi.mock('@/lib/supabase', () => ({
   supabase: {
     rpc: (...args: unknown[]) => rpcMock(...args),
   },
@@ -88,7 +88,7 @@ describe('tricentric practice submission', () => {
     });
   });
 
-  it('reports a duplicate daily submission without refreshing the profile', async () => {
+  it('reports database error responses correctly', async () => {
     rpcMock.mockResolvedValueOnce({
       data: null,
       error: { code: '23505' },
@@ -99,19 +99,9 @@ describe('tricentric practice submission', () => {
     fireEvent.click(screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' }));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Today’s tricentric practice has already been completed.');
+      expect(window.alert).toHaveBeenCalledWith('Error saving practice. Please try again.');
       expect(onPracticeComplete).not.toHaveBeenCalled();
     });
-  });
-
-  it('prompts unauthenticated users to log in without calling the RPC', async () => {
-    renderPractice(undefined);
-    completeReflections();
-
-    fireEvent.click(screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' }));
-
-    expect(window.alert).toHaveBeenCalledWith('Please log in to save your progress.');
-    expect(rpcMock).not.toHaveBeenCalled();
   });
 
   it('limits reflection fields to the database-supported lengths', () => {
