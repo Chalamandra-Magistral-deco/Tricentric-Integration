@@ -99,7 +99,7 @@ describe('tricentric practice submission', () => {
     fireEvent.click(screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' }));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Error saving practice. Please try again.');
+      expect(window.alert).toHaveBeenCalledWith('Today’s tricentric practice has already been completed.');
       expect(onPracticeComplete).not.toHaveBeenCalled();
     });
   });
