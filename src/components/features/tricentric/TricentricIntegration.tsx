@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { TricentricSliders } from '@/components/features/TricentricSliders';
 
 const MAX_REFLECTION_LENGTH = 3000;
 const MAX_SYNTHESIS_LENGTH = 5000;
@@ -43,6 +44,7 @@ export default function TricentricIntegration({ userId, onPracticeComplete, stri
   const [heartText, setHeartText] = useState('');
   const [bodyText, setBodyText] = useState('');
   const [synthesis, setSynthesis] = useState('');
+  const [actValues, setActValues] = useState({ head: 5, heart: 5, body: 5, actScore: 100 });
   const [breathingActive, setBreathingActive] = useState(false);
   const [breathingPhase, setBreathingPhase] = useState<'inhale' | 'hold' | 'exhale'>('inhale');
   const breathingTimer = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -118,8 +120,8 @@ export default function TricentricIntegration({ userId, onPracticeComplete, stri
 
       alert(
         result.achievement_unlocked
-          ? `Practice saved. +${result.xp_awarded} XP earned. Redirecting to the digital version.`
-          : `Practice saved. +${result.xp_awarded} XP earned.`
+          ? `Practice saved. +${result.xp_awarded} XP earned (ACT Score: ${actValues.actScore}). Redirecting to the digital version.`
+          : `Practice saved. +${result.xp_awarded} XP earned (ACT Score: ${actValues.actScore}).`
       );
 
       if (checkoutWindow && !stripeUrl) checkoutWindow.close();
@@ -134,12 +136,17 @@ export default function TricentricIntegration({ userId, onPracticeComplete, stri
   return (
     <div className="tricentric-integration p-6 max-w-6xl mx-auto bg-gray-900 rounded-2xl border border-purple-900 my-12">
       <h2 className="text-3xl font-bold text-center mb-6 text-white bg-gradient-to-r from-blue-400 via-red-400 to-green-400 bg-clip-text text-transparent">
-        🎯 Tricentric Integration
+        🎯 Tricentric Integration & ACT v1.0
       </h2>
 
       <p className="text-center text-gray-400 mb-8 italic">
         "Wisdom is not about suppressing voices, but about directing the internal choir."
       </p>
+
+      {/* Sliders Interactivos y Cálculo ACT */}
+      <div className="mb-8">
+        <TricentricSliders onChange={setActValues} />
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {CENTERS.map((center) => (
@@ -209,50 +216,6 @@ export default function TricentricIntegration({ userId, onPracticeComplete, stri
           {loading ? 'SAVING...' : 'GET THE DIGITAL DECISION MAP'}
         </button>
       </div>
-
-      <div className="mt-8 bg-gray-800 rounded-2xl p-8 border border-gray-700">
-        <h3 className="text-2xl font-bold text-yellow-400 mb-6 text-center">📘 Section 2 · Somatic Guide</h3>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
-            <h4 className="text-lg font-bold text-yellow-300 mb-4">🦶 Body Dictionary</h4>
-            <div className="space-y-3 text-sm text-gray-300">
-              <p>
-                <span className="text-red-400 mr-2">💢</span>
-                <strong className="text-red-300">Chest pressure:</strong> a sensation you can observe; ask what emotion, context or boundary may be relevant.
-              </p>
-              <p>
-                <span className="text-blue-400 mr-2">🌀</span>
-                <strong className="text-blue-300">Shaky hands:</strong> a bodily sensation that may accompany stress or activation; treat it as a cue to pause and observe.
-              </p>
-              <p>
-                <span className="text-green-400 mr-2">😴</span>
-                <strong className="text-green-300">Persistent fatigue:</strong> a signal worth observing alongside sleep, workload and other context; it does not prove a values mismatch.
-              </p>
-              <p>
-                <span className="text-purple-400 mr-2">🌊</span>
-                <strong className="text-purple-300">Expanded breathing:</strong> a subjective sense of ease that can be used as a reflection cue, not as proof of a decision.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-gray-900 rounded-xl p-6 border border-gray-700">
-            <h4 className="text-lg font-bold text-yellow-300 mb-4">💫 Integration Example</h4>
-            <p className="text-sm text-gray-300 mb-4">
-              <strong className="text-blue-300">Head:</strong> Financial transition is viable in 6 months.
-            </p>
-            <p className="text-sm text-gray-300 mb-4">
-              <strong className="text-red-300">Heart:</strong> There is fear, but also real excitement.
-            </p>
-            <p className="text-sm text-gray-300 mb-4">
-              <strong className="text-green-300">Body:</strong> Breath opens when imagining the change.
-            </p>
-            <p className="text-sm text-yellow-200 bg-yellow-900/20 border border-yellow-700 rounded-lg p-3">
-              <strong>Integrated action:</strong> start with a gradual transition that protects stability while honoring passion.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
-}
+};
