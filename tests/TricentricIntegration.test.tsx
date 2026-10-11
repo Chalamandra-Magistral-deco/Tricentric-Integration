@@ -94,7 +94,7 @@ describe('tricentric practice submission', () => {
         p_synthesis: 'Integrated next step',
       });
       expect(onPracticeComplete).toHaveBeenCalledOnce();
-      expect(window.alert).toHaveBeenCalledWith('Practice saved. +50 XP earned.');
+      expect(window.alert).toHaveBeenCalledWith('Practice saved. +50 XP earned (ACT Score: 100).');
     });
   });
 
