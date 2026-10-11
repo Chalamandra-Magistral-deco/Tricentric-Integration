@@ -92,7 +92,10 @@ describe('tricentric practice submission', () => {
         p_heart: 'Heart reflection',
         p_body: 'Body reflection',
         p_synthesis: 'Integrated next step',
-      });
+        p_head_intensity: 5,
+        p_heart_intensity: 5,
+        p_body_intensity: 5,
+        p_act_score: 100,
       expect(onPracticeComplete).toHaveBeenCalledOnce();
       expect(window.alert).toHaveBeenCalledWith('Practice saved. +50 XP earned (ACT Score: 100).');
     });
