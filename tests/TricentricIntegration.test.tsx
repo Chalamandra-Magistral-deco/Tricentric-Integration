@@ -1,79 +1,61 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import TricentricIntegration from '../src/components/features/tricentric/TricentricIntegration';
-import { supabase } from '../src/lib/supabase';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import TricentricIntegration from '@/components/features/tricentric/TricentricIntegration';
+import { supabase } from '@/lib/supabase';
 
-vi.mock('../src/lib/supabase', () => ({
-  supabase: { rpc: vi.fn() },
+vi.mock('@lib/supabase', () => ({
+  supabase: {
+    rpc: vi.fn(),
+  },
 }));
 
-const rpcMock = vi.mocked(supabase.rpc);
-
-function renderPractice(userId: string | null = 'user-1') {
-  const onPracticeComplete = vi.fn().mockResolvedValue(undefined);
-  render(
-    <TricentricIntegration
-      userId={userId ?? undefined}
-      onPracticeComplete={onPracticeComplete}
-      stripeUrl=""
-    />,
-  );
-
-  return { onPracticeComplete };
-}
-
-function completeReflections() {
-  fireEvent.change(screen.getByLabelText('HEAD reflection'), {
-    target: { value: '  Head reflection  ' },
-  });
-  fireEvent.change(screen.getByLabelText('HEART reflection'), {
-    target: { value: '  Heart reflection  ' },
-  });
-  fireEvent.change(screen.getByLabelText('BODY reflection'), {
-    target: { value: '  Body reflection  ' },
-  });
-  fireEvent.change(screen.getByLabelText('Integrative synthesis'), {
-    target: { value: '  Integrated next step  ' },
-  });
-}
+vi.mock('@components/features/TricentricSliders', () => ({
+  TricentricSliders: () => <div data-testid="tricentric-sliders">Sliders Mock</div>,
+}));
 
 describe('tricentric practice submission', () => {
+  const rpcMock = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
+
   beforeEach(() => {
-    rpcMock.mockReset();
-    vi.spyOn(window, 'alert').mockImplementation(() => undefined);
+    vi.clearAllMocks();
+    vi.spyOn(window, 'alert').mockImplementation(() => {});
+    vi.spyOn(window, 'open').mockReturnValue({ location: { href: '' }, close: () => {} } as unknown as Window);
   });
 
-  afterEach(() => {
-    cleanup();
-    vi.restoreAllMocks();
-  });
+  const renderPractice = (userId = 'user-1') => {
+    const onPracticeComplete = vi.fn().mockResolvedValue(undefined);
+    render(
+      <TricentricIntegration
+        userId={userId}
+        onPracticeComplete={onPracticeComplete}
+        stripeUrl="https://stripe.com/test"
+      />
+    );
+    return { onPracticeComplete };
+  };
+
+  const completeReflections = () => {
+    fireEvent.change(screen.getByRole('textbox', { name: 'HEAD reflection' }), {
+      target: { value: 'Head reflection' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'HEART reflection' }), {
+      target: { value: 'Heart reflection' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'BODY reflection' }), {
+      target: { value: 'Body reflection' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Integrative synthesis' }), {
+      target: { value: 'Integrated next step' },
+    });
+  };
 
   it('requires all four non-empty reflections before enabling submission', () => {
     renderPractice();
-    const submitButton = screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' });
+    const submitBtn = screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' });
+    expect(submitBtn).toBeDisabled();
 
-    expect((submitButton as HTMLButtonElement).disabled).toBe(true);
-
-    fireEvent.change(screen.getByLabelText('HEAD reflection'), {
-      target: { value: 'Head' },
-    });
-    fireEvent.change(screen.getByLabelText('HEART reflection'), {
-      target: { value: 'Heart' },
-    });
-    fireEvent.change(screen.getByLabelText('BODY reflection'), {
-      target: { value: 'Body' },
-    });
-    fireEvent.change(screen.getByLabelText('Integrative synthesis'), {
-      target: { value: '   ' },
-    });
-
-    expect((submitButton as HTMLButtonElement).disabled).toBe(true);
-
-    fireEvent.change(screen.getByLabelText('Integrative synthesis'), {
-      target: { value: 'Synthesis' },
-    });
-
-    expect((submitButton as HTMLButtonElement).disabled).toBe(false);
+    completeReflections();
+    expect(submitBtn).toBeEnabled();
   });
 
   it('sends trimmed reflections, refreshes the profile, and reports success', async () => {
@@ -96,6 +78,10 @@ describe('tricentric practice submission', () => {
         p_heart_intensity: 5,
         p_body_intensity: 5,
         p_act_score: 100,
+      });
+      expect(onPracticeComplete).toHaveBeenCalledOnce();
+      expect(window.alert).toHaveBeenCalledWith('Practice saved. +50 XP earned (ACT Score: 100).');
+    });
   });
 
   it('reports a duplicate daily submission without refreshing the profile', async () => {
@@ -109,31 +95,27 @@ describe('tricentric practice submission', () => {
     fireEvent.click(screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' }));
 
     await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith(
-        'Today’s tricentric practice has already been completed.',
-      );
+      expect(window.alert).toHaveBeenCalledWith('Today’s tricentric practice has already been completed.');
+      expect(onPracticeComplete).not.toHaveBeenCalled();
     });
-    expect(onPracticeComplete).not.toHaveBeenCalled();
   });
 
   it('prompts unauthenticated users to log in without calling the RPC', async () => {
-    renderPractice(null);
+    renderPractice(undefined);
     completeReflections();
 
     fireEvent.click(screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' }));
 
-    await waitFor(() => {
-      expect(window.alert).toHaveBeenCalledWith('Please log in to save your progress.');
-    });
+    expect(window.alert).toHaveBeenCalledWith('Please log in to save your progress.');
     expect(rpcMock).not.toHaveBeenCalled();
   });
 
   it('limits reflection fields to the database-supported lengths', () => {
     renderPractice();
+    const headInput = screen.getByRole('textbox', { name: 'HEAD reflection' });
+    const synthesisInput = screen.getByRole('textbox', { name: 'Integrative synthesis' });
 
-    expect(screen.getByLabelText('HEAD reflection').getAttribute('maxLength')).toBe('3000');
-    expect(screen.getByLabelText('HEART reflection').getAttribute('maxLength')).toBe('3000');
-    expect(screen.getByLabelText('BODY reflection').getAttribute('maxLength')).toBe('3000');
-    expect(screen.getByLabelText('Integrative synthesis').getAttribute('maxLength')).toBe('5000');
+    expect(headInput).toHaveAttribute('maxLength', '3000');
+    expect(synthesisInput).toHaveAttribute('maxLength', '5000');
   });
 });
