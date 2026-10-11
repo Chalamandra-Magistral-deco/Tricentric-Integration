@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { dispatchMatrixTelemetry } from '@/lib/telemetry';
 
 interface TricentricSlidersProps {
   onChange: (values: { head: number; heart: number; body: number; actScore: number }) => void;
@@ -10,29 +11,38 @@ export const TricentricSliders: React.FC<TricentricSlidersProps> = ({ onChange }
   const [body, setBody] = useState<number>(5);
   const [actScore, setActScore] = useState<number>(100);
 
-  useEffect(() => {
-    // Cálculo local espejo del algoritmo SQL ACT (v1.0)
-    const mean = (head + heart + body) / 3.0;
+  const calculateACT = useCallback((h: number, hc: number, b: number) => {
+    const mean = (h + hc + b) / 3.0;
     const variance = (
-      Math.pow(head - mean, 2) + 
-      Math.pow(heart - mean, 2) + 
-      Math.pow(body - mean, 2)
+      Math.pow(h - mean, 2) + 
+      Math.pow(hc - mean, 2) + 
+      Math.pow(b - mean, 2)
     ) / 3.0;
     
     const maxVariance = 66.6667;
     const rawAct = 100.0 * (1.0 - Math.sqrt(variance / maxVariance));
-    const score = Number(Math.max(0, Math.min(100, rawAct)).toFixed(2));
+    return Number(Math.max(0, Math.min(100, rawAct)).toFixed(2));
+  }, []);
 
+  useEffect(() => {
+    const score = calculateACT(head, heart, body);
     setActScore(score);
     onChange({ head, heart, body, actScore: score });
-  }, [head, heart, body, onChange]);
+
+    // Despachar telemetría al ecosistema Chalamandra Magistral
+    dispatchMatrixTelemetry({
+      event: 'ACT_SCORE_CALCULATED',
+      actScore: score,
+      intensities: { head, heart, body },
+    });
+  }, [head, heart, body, calculateACT, onChange]);
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 text-slate-100 shadow-xl space-y-6">
       <div className="flex justify-between items-center border-b border-slate-800 pb-4">
         <h3 className="text-lg font-semibold tracking-wide">Ejes Tricéntricos · ACT v1.0</h3>
         <div className="text-right">
-          <span className="text-xs uppercase text-slate-400 block">Índice de Coherencia</span>
+          <span className="text-xs uppercase text-slate-400 block">Índice de Coherencia (Matrix Synced)</span>
           <span className="text-2xl font-bold text-emerald-400">{actScore} <span className="text-xs text-slate-500">/ 100</span></span>
         </div>
       </div>
