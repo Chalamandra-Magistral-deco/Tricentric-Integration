@@ -1,3 +1,7 @@
+// Simular variables de entorno de Supabase antes de cualquier importación
+process.env.VITE_SUPABASE_URL = 'https://example.supabase.co';
+process.env.VITE_SUPABASE_ANON_KEY = 'mock-anon-key';
+
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import TricentricIntegration from '@/components/features/tricentric/TricentricIntegration';
