@@ -51,11 +51,11 @@ describe('tricentric practice submission', () => {
 
   it('requires all four non-empty reflections before enabling submission', () => {
     renderPractice();
-    const submitBtn = screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' });
-    expect(submitBtn).toBeDisabled();
+    const submitBtn = screen.getByRole('button', { name: 'GET THE DIGITAL DECISION MAP' }) as HTMLButtonElement;
+    expect(submitBtn.disabled).toBe(true);
 
     completeReflections();
-    expect(submitBtn).toBeEnabled();
+    expect(submitBtn.disabled).toBe(false);
   });
 
   it('sends trimmed reflections, refreshes the profile, and reports success', async () => {
@@ -115,7 +115,7 @@ describe('tricentric practice submission', () => {
     const headInput = screen.getByRole('textbox', { name: 'HEAD reflection' });
     const synthesisInput = screen.getByRole('textbox', { name: 'Integrative synthesis' });
 
-    expect(headInput).toHaveAttribute('maxLength', '3000');
-    expect(synthesisInput).toHaveAttribute('maxLength', '5000');
+    expect(headInput.getAttribute('maxlength')).toBe('3000');
+    expect(synthesisInput.getAttribute('maxlength')).toBe('5000');
   });
 });
