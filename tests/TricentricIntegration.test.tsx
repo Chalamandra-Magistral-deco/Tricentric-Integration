@@ -1,11 +1,13 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import TricentricIntegration from '@/components/features/tricentric/TricentricIntegration';
 import { supabase } from '@/lib/supabase';
 
+const rpcMock = vi.fn();
+
 vi.mock('@lib/supabase', () => ({
   supabase: {
-    rpc: vi.fn(),
+    rpc: (...args: unknown[]) => rpcMock(...args),
   },
 }));
 
@@ -14,12 +16,14 @@ vi.mock('@components/features/TricentricSliders', () => ({
 }));
 
 describe('tricentric practice submission', () => {
-  const rpcMock = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(window, 'alert').mockImplementation(() => {});
     vi.spyOn(window, 'open').mockReturnValue({ location: { href: '' }, close: () => {} } as unknown as Window);
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   const renderPractice = (userId = 'user-1') => {
@@ -35,16 +39,16 @@ describe('tricentric practice submission', () => {
   };
 
   const completeReflections = () => {
-    fireEvent.change(screen.getByRole('textbox', { name: 'HEAD reflection' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /HEAD reflection/i }), {
       target: { value: 'Head reflection' },
     });
-    fireEvent.change(screen.getByRole('textbox', { name: 'HEART reflection' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /HEART reflection/i }), {
       target: { value: 'Heart reflection' },
     });
-    fireEvent.change(screen.getByRole('textbox', { name: 'BODY reflection' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /BODY reflection/i }), {
       target: { value: 'Body reflection' },
     });
-    fireEvent.change(screen.getByRole('textbox', { name: 'Integrative synthesis' }), {
+    fireEvent.change(screen.getByRole('textbox', { name: /Integrative synthesis/i }), {
       target: { value: 'Integrated next step' },
     });
   };
@@ -59,10 +63,10 @@ describe('tricentric practice submission', () => {
   });
 
   it('sends trimmed reflections, refreshes the profile, and reports success', async () => {
-    rpcMock.mockResolvedValue({
+    rpcMock.mockResolvedValueOnce({
       data: { practice_id: 'practice-1', xp_awarded: 50, achievement_unlocked: false },
       error: null,
-    } as never);
+    });
     const { onPracticeComplete } = renderPractice();
     completeReflections();
 
@@ -85,10 +89,10 @@ describe('tricentric practice submission', () => {
   });
 
   it('reports a duplicate daily submission without refreshing the profile', async () => {
-    rpcMock.mockResolvedValue({
+    rpcMock.mockResolvedValueOnce({
       data: null,
       error: { code: '23505' },
-    } as never);
+    });
     const { onPracticeComplete } = renderPractice();
     completeReflections();
 
@@ -112,8 +116,8 @@ describe('tricentric practice submission', () => {
 
   it('limits reflection fields to the database-supported lengths', () => {
     renderPractice();
-    const headInput = screen.getByRole('textbox', { name: 'HEAD reflection' });
-    const synthesisInput = screen.getByRole('textbox', { name: 'Integrative synthesis' });
+    const headInput = screen.getByRole('textbox', { name: /HEAD reflection/i });
+    const synthesisInput = screen.getByRole('textbox', { name: /Integrative synthesis/i });
 
     expect(headInput.getAttribute('maxlength')).toBe('3000');
     expect(synthesisInput.getAttribute('maxlength')).toBe('5000');
