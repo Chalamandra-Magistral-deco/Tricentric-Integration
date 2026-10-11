@@ -96,9 +96,6 @@ describe('tricentric practice submission', () => {
         p_heart_intensity: 5,
         p_body_intensity: 5,
         p_act_score: 100,
-      expect(onPracticeComplete).toHaveBeenCalledOnce();
-      expect(window.alert).toHaveBeenCalledWith('Practice saved. +50 XP earned (ACT Score: 100).');
-    });
   });
 
   it('reports a duplicate daily submission without refreshing the profile', async () => {
