@@ -98,6 +98,10 @@ export default function TricentricIntegration({ userId, onPracticeComplete, stri
         p_heart: heartText.trim(),
         p_body: bodyText.trim(),
         p_synthesis: synthesis.trim(),
+        p_head_intensity: actValues.head,
+        p_heart_intensity: actValues.heart,
+        p_body_intensity: actValues.body,
+        p_act_score: actValues.actScore,
       });
 
       if (error) {
