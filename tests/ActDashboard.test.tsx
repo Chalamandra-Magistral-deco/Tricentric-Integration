@@ -43,11 +43,11 @@ describe('ActDashboard Component', () => {
 
     render(<ActDashboard userId="user-1" />);
 
-    expect(screen.getByTestId('act-dashboard-loading')).toBeInTheDocument();
+    expect(screen.getByTestId('act-dashboard-loading')).toBeDefined();
 
     await waitFor(() => {
-      expect(screen.getByText('95 / 100')).toBeInTheDocument();
-      expect(screen.getByText('Acción alineada', { exact: false })).toBeInTheDocument();
+      expect(screen.getByText('95 / 100')).toBeDefined();
+      expect(screen.getByText('Acción alineada', { exact: false })).toBeDefined();
     });
   });
 });
