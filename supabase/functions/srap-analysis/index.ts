@@ -20,7 +20,7 @@ interface AnalyzeSynthesisPayload {
 type RequestPayload = AnalyzeMiseryPayload | AnalyzeSynthesisPayload;
 
 function corsHeaders(origin: string | null): HeadersInit {
-  const allowedOrigin = "https://tricentric-integration-lyart.vercel.app";
+  const allowedOrigin = "https://tricentric.chalamandramagistral.com";
 
   return {
     "Access-Control-Allow-Origin":
@@ -157,7 +157,7 @@ export default {
       return jsonResponse({ error: "Method not allowed" }, 405, origin);
     }
 
-    const configuredOrigin = "https://tricentric-integration-lyart.vercel.app";
+    const configuredOrigin = "https://tricentric.chalamandramagistral.com";
     if (origin !== configuredOrigin) {
       return jsonResponse({ error: "Origin not allowed" }, 403, origin);
     }

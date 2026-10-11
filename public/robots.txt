@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://tricentric-integration-lyart.vercel.app/sitemap.xml
+Sitemap: https://tricentric.chalamandramagistral.com/sitemap.xml
