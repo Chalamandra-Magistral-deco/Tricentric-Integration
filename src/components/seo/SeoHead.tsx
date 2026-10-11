@@ -19,28 +19,16 @@ function upsertMeta(selector: string, attributes: Record<string, string>) {
   }
 }
 
-function getSiteUrl() {
-  const envSiteUrl = import.meta.env.VITE_SITE_URL;
-  if (envSiteUrl) {
-    return envSiteUrl.replace(/\/$/, '');
-  }
-
-  if (typeof window !== 'undefined') {
-    return window.location.origin;
-  }
-
-  return '';
-}
+const SITE_URL = 'https://tricentric.chalamandramagistral.com';
 
 export default function SeoHead({ title, description, canonicalPath = '/' }: SeoHeadProps) {
   useEffect(() => {
     document.title = title;
     document.documentElement.lang = 'es';
 
-    const siteUrl = getSiteUrl();
     const normalizedPath = canonicalPath.startsWith('/') ? canonicalPath : `/${canonicalPath}`;
-    const canonicalUrl = `${siteUrl}${normalizedPath}`;
-    const ogImageUrl = `${siteUrl}/og-image.svg`;
+    const canonicalUrl = `${SITE_URL}${normalizedPath}`;
+    const ogImageUrl = `${SITE_URL}/og-image.svg`;
 
     upsertMeta('meta[name="description"]', { name: 'description', content: description });
     upsertMeta('meta[name="robots"]', { name: 'robots', content: 'index,follow,max-image-preview:large' });

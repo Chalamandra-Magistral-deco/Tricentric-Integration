@@ -47,7 +47,7 @@ The production branch protects the business-critical state at the database bound
 - Gemini credentials remain server-side.
 - The browser prefers the Supabase publishable key.
 - Production headers include clickjacking, MIME-sniffing and referrer protections.
-- Canonical URL, robots and sitemap point to the current Vercel deployment.
+- Canonical URL, robots and sitemap point to `https://tricentric.chalamandramagistral.com`.
 
 ## Stack
 
@@ -68,7 +68,6 @@ Frontend:
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxx
-VITE_SITE_URL=https://tricentric-integration-lyart.vercel.app
 VITE_ENABLE_LOCAL_AI=false
 ```
 
