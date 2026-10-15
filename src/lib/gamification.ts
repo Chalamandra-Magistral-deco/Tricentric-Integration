@@ -38,16 +38,16 @@ export function getXPForNextLevel(currentLevel: number): number {
 
 export function getLevelTitle(level: number): string {
   const titles = [
-    'Lost Novice',           // 1
-    'Apprentice of Pain',       // 2
-    'Warrior in Training',    // 3
-    'Scarred Veteran',     // 4
-    'Hardened Survivor',       // 5
-    'Master of Sacrifices',   // 6
-    'Reality Seer',    // 7
-    'Abyss Commander',    // 8
-    'Brutal Legend',           // 9
-    'Supreme Decoder',    // 10
+    'Principiante',           // 1
+    'Aprendiz',               // 2
+    'En entrenamiento',       // 3
+    'Veterano',               // 4
+    'Superviviente',          // 5
+    'Integrador',             // 6
+    'Observador',             // 7
+    'Explorador',             // 8
+    'Referente',              // 9
+    'Maestría personal',      // 10
   ];
 
   return titles[level - 1] || titles[0];

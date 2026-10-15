@@ -53,4 +53,5 @@ export interface GamificationState {
   streak: number;
   totalEvaluations: number;
   recentAchievements: UserAchievement[];
+  achievementsError?: string | null;
 }

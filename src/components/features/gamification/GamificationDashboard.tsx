@@ -9,7 +9,7 @@ interface GamificationDashboardProps {
 }
 
 const GamificationDashboard: React.FC<GamificationDashboardProps> = ({ state }) => {
-  const { level, xp, nextLevelXP, streak, totalEvaluations, recentAchievements } = state;
+  const { level, xp, nextLevelXP, streak, totalEvaluations, recentAchievements, achievementsError } = state;
 
   return (
     <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black rounded-2xl p-6 border border-yellow-700 mb-8">
@@ -27,15 +27,15 @@ const GamificationDashboard: React.FC<GamificationDashboardProps> = ({ state }) 
           </div>
         </div>
 
-        <div className="flex gap-6">
+        <div className="flex flex-wrap justify-center gap-6">
           <div className="text-center">
             <div className="text-3xl font-black text-red-400">{totalEvaluations}</div>
-            <div className="text-xs text-gray-400 uppercase">Evaluations</div>
+            <div className="text-xs text-gray-300 uppercase">Evaluaciones y prácticas</div>
           </div>
 
           <div className="text-center">
             <div className="text-3xl font-black text-yellow-400">{streak}</div>
-            <div className="text-xs text-gray-400 uppercase">Streak (days)</div>
+            <div className="text-xs text-gray-300 uppercase">Días de actividad</div>
           </div>
         </div>
       </div>
@@ -44,15 +44,21 @@ const GamificationDashboard: React.FC<GamificationDashboardProps> = ({ state }) 
         <ProgressBar
           current={xp}
           max={nextLevelXP}
-          label="Progress to next level"
+          label="Progreso hacia el próximo nivel"
           color="yellow"
         />
       </div>
 
+      {achievementsError && (
+        <p className="mt-4 text-sm text-amber-200" role="status">
+          {achievementsError}
+        </p>
+      )}
+
       {recentAchievements.length > 0 && (
         <div className="mt-6 border-t border-gray-700 pt-4">
-          <h4 className="text-sm font-bold text-gray-400 mb-3">RECENT ACHIEVEMENTS</h4>
-          <div className="flex gap-3">
+          <h4 className="text-sm font-bold text-gray-300 mb-3">LOGROS RECIENTES</h4>
+          <div className="flex flex-wrap gap-3">
             {recentAchievements.map((ua) => (
               <div
                 key={ua.id}

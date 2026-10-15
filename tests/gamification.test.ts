@@ -46,8 +46,8 @@ describe('gamification progression', () => {
   });
 
   it('returns the matching title and falls back for an invalid level', () => {
-    expect(getLevelTitle(1)).toBe('Lost Novice');
-    expect(getLevelTitle(10)).toBe('Supreme Decoder');
-    expect(getLevelTitle(0)).toBe('Lost Novice');
+    expect(getLevelTitle(1)).toBe('Principiante');
+    expect(getLevelTitle(10)).toBe('Maestría personal');
+    expect(getLevelTitle(0)).toBe('Principiante');
   });
 });

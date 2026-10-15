@@ -6,8 +6,8 @@ const OfferSection: React.FC = () => (
   <section id="offer" className="py-12 px-6 max-w-6xl mx-auto">
     <div className="rounded-3xl border border-yellow-700 bg-gradient-to-br from-gray-900 via-black to-gray-900 p-8 md:p-10 shadow-2xl">
       <div className="max-w-4xl mx-auto text-center">
-        <p className="mb-3 text-xs font-black uppercase tracking-[0.3em] text-yellow-400">
-          Tricentric Decision Map
+        <p className="mb-3 text-xs font-black uppercase tracking-[0.3em] text-yellow-300">
+          Mapa de decisiones
         </p>
         <h2 className="text-3xl md:text-5xl font-black text-white mb-5">
           ¿Tienes una decisión difícil?
@@ -20,21 +20,21 @@ const OfferSection: React.FC = () => (
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left mb-8">
           <div className="rounded-2xl border border-blue-900 bg-blue-950/20 p-5">
-            <p className="font-bold text-blue-300 mb-2">01 · MAP</p>
+            <p className="font-bold text-blue-300 mb-2">01 · OBSERVA</p>
             <p className="text-sm text-gray-300">
-              Diagnóstico guiado para identificar el centro que más está perdiendo margen.
+              Describe la situación y qué aspecto necesita atención, sin etiquetarte.
             </p>
           </div>
           <div className="rounded-2xl border border-red-900 bg-red-950/20 p-5">
-            <p className="font-bold text-red-300 mb-2">02 · UNDERSTAND</p>
+            <p className="font-bold text-red-300 mb-2">02 · EXPLORA</p>
             <p className="text-sm text-gray-300">
-              Haz visible el sacrificio, la tensión y el coste de ignorar los otros centros.
+              Considera qué puedes ajustar y qué hechos o preguntas siguen pendientes.
             </p>
           </div>
           <div className="rounded-2xl border border-green-900 bg-green-950/20 p-5">
-            <p className="font-bold text-green-300 mb-2">03 · ACT</p>
+            <p className="font-bold text-green-300 mb-2">03 · ELIGE</p>
             <p className="text-sm text-gray-300">
-              Cierra con una síntesis propia y una siguiente acción concreta para probar.
+              Cierra con una síntesis propia y un siguiente paso que tú eliges.
             </p>
           </div>
         </div>

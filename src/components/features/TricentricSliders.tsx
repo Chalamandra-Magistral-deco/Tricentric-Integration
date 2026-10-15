@@ -3,9 +3,10 @@ import { dispatchMatrixTelemetry } from '@/lib/telemetry';
 
 interface TricentricSlidersProps {
   onChange: (values: { head: number; heart: number; body: number; actScore: number }) => void;
+  disabled?: boolean;
 }
 
-export const TricentricSliders: React.FC<TricentricSlidersProps> = ({ onChange }) => {
+export const TricentricSliders: React.FC<TricentricSlidersProps> = ({ onChange, disabled = false }) => {
   const [head, setHead] = useState<number>(5);
   const [heart, setHeart] = useState<number>(5);
   const [body, setBody] = useState<number>(5);
@@ -42,48 +43,58 @@ export const TricentricSliders: React.FC<TricentricSlidersProps> = ({ onChange }
       <div className="flex justify-between items-center border-b border-slate-800 pb-4">
         <h3 className="text-lg font-semibold tracking-wide">Ejes Tricéntricos · ACT v1.0</h3>
         <div className="text-right">
-          <span className="text-xs uppercase text-slate-400 block">Índice de Coherencia (Matrix Synced)</span>
+          <span className="text-xs uppercase text-slate-300 block">Equilibrio ACT</span>
           <span className="text-2xl font-bold text-emerald-400">{actScore} <span className="text-xs text-slate-500">/ 100</span></span>
         </div>
       </div>
+      <p className="text-sm leading-relaxed text-slate-300">
+        Resume cuánto se parecen las intensidades que elegiste. No determina si una decisión es
+        correcta ni representa una valoración clínica.
+      </p>
 
       <div className="space-y-4">
-        {/* HEAD */}
         <div>
           <div className="flex justify-between text-sm mb-1">
-            <span className="font-medium text-cyan-400">Head (Cabeza / Análisis)</span>
-            <span className="font-mono text-slate-300">{head}</span>
+            <label htmlFor="head-intensity" className="font-medium text-cyan-300">Cabeza · análisis</label>
+            <span className="font-mono text-slate-200">{head} de 10</span>
           </div>
-          <input 
-            type="range" min="0" max="10" value={head} 
+          <input
+            id="head-intensity"
+            aria-valuetext={`${head} de 10`}
+            type="range" min="0" max="10" value={head}
+            disabled={disabled}
             onChange={(e) => setHead(Number(e.target.value))}
-            className="w-full accent-cyan-500 cursor-pointer"
+            className="min-h-11 w-full cursor-pointer accent-cyan-400"
           />
         </div>
 
-        {/* HEART */}
         <div>
           <div className="flex justify-between text-sm mb-1">
-            <span className="font-medium text-rose-400">Heart (Corazón / Vínculo)</span>
-            <span className="font-mono text-slate-300">{heart}</span>
+            <label htmlFor="heart-intensity" className="font-medium text-rose-300">Corazón · emoción y valores</label>
+            <span className="font-mono text-slate-200">{heart} de 10</span>
           </div>
-          <input 
-            type="range" min="0" max="10" value={heart} 
+          <input
+            id="heart-intensity"
+            aria-valuetext={`${heart} de 10`}
+            type="range" min="0" max="10" value={heart}
+            disabled={disabled}
             onChange={(e) => setHeart(Number(e.target.value))}
-            className="w-full accent-rose-500 cursor-pointer"
+            className="min-h-11 w-full cursor-pointer accent-rose-400"
           />
         </div>
 
-        {/* BODY */}
         <div>
           <div className="flex justify-between text-sm mb-1">
-            <span className="font-medium text-amber-400">Body (Cuerpo / Ejecución)</span>
-            <span className="font-mono text-slate-300">{body}</span>
+            <label htmlFor="body-intensity" className="font-medium text-amber-300">Cuerpo · sensación observada</label>
+            <span className="font-mono text-slate-200">{body} de 10</span>
           </div>
-          <input 
-            type="range" min="0" max="10" value={body} 
+          <input
+            id="body-intensity"
+            aria-valuetext={`${body} de 10`}
+            type="range" min="0" max="10" value={body}
+            disabled={disabled}
             onChange={(e) => setBody(Number(e.target.value))}
-            className="w-full accent-amber-500 cursor-pointer"
+            className="min-h-11 w-full cursor-pointer accent-amber-400"
           />
         </div>
       </div>

@@ -4,6 +4,7 @@ import TruthsSection from '@/components/sections/TruthsSection';
 import RealityMapSection from '@/components/sections/RealityMapSection';
 import ExamSection from '@/components/features/exam/ExamSection';
 import TricentricIntegration from '@/components/features/tricentric/TricentricIntegration';
+import ActDashboard from '@/components/features/tricentric/ActDashboard';
 import GamificationDashboard from '@/components/features/gamification/GamificationDashboard';
 import AuthPanel from '@/components/auth/AuthPanel';
 import OfferSection from '@/components/sections/OfferSection';
@@ -12,28 +13,46 @@ import { supabase } from '@/lib/supabase';
 import { useProfile } from '@/hooks/useProfile';
 import { useGamification } from '@/hooks/useGamification';
 
-const STRIPE_PAYMENT_LINK = import.meta.env.VITE_STRIPE_PAYMENT_LINK ?? '';
-
 const HomePage: React.FC = () => {
   const [userId, setUserId] = useState<string>();
   const [authChecked, setAuthChecked] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
 
   const { profile, error: profileError, refreshProfile } = useProfile(userId);
   const gamificationState = useGamification(profile);
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id);
-      setAuthChecked(true);
-    });
+    let mounted = true;
+    let receivedAuthEvent = false;
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      receivedAuthEvent = true;
       setUserId(session?.user?.id);
+      setAuthError(null);
+      setAuthChecked(true);
     });
 
-    return () => subscription.unsubscribe();
+    void supabase.auth.getUser()
+      .then(({ data: { user }, error }) => {
+        if (!mounted || receivedAuthEvent) return;
+        if (error) throw error;
+        setUserId(user?.id);
+      })
+      .catch((error: unknown) => {
+        if (!mounted || receivedAuthEvent) return;
+        setAuthError('No se pudo verificar la sesión. Puedes volver a intentarlo iniciando sesión.');
+        console.error('Error verifying the current session:', error);
+      })
+      .finally(() => {
+        if (mounted && !receivedAuthEvent) setAuthChecked(true);
+      });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (!authChecked) {
@@ -43,7 +62,7 @@ const HomePage: React.FC = () => {
           <div className="text-5xl mb-4" aria-hidden="true">
             💀
           </div>
-          <div className="text-gray-400">Loading SRAP...</div>
+          <div className="text-gray-300">Cargando SRAP…</div>
         </div>
       </div>
     );
@@ -61,8 +80,13 @@ const HomePage: React.FC = () => {
       </a>
 
       <div className="min-h-screen selection:bg-red-500 selection:text-white">
-        <HeaderSection />
+        <HeaderSection isAuthenticated={Boolean(userId)} />
         <AuthPanel userId={userId} />
+        {authError && (
+          <p className="mx-auto mb-6 max-w-xl px-6 text-center text-red-200" role="alert">
+            {authError}
+          </p>
+        )}
 
         <main id="main-content">
           <OfferSection />
@@ -74,9 +98,14 @@ const HomePage: React.FC = () => {
           )}
 
           {userId && profile?.id === userId && (
-            <section aria-label="Tu progreso" className="max-w-6xl mx-auto px-6 -mt-8">
-              <GamificationDashboard state={gamificationState} />
-            </section>
+            <>
+              <section aria-label="Tu progreso" className="max-w-6xl mx-auto px-6 -mt-8">
+                <GamificationDashboard state={gamificationState} />
+              </section>
+              <section id="dashboard" aria-label="Tu historial tricéntrico" className="max-w-6xl mx-auto px-6">
+                <ActDashboard userId={userId} />
+              </section>
+            </>
           )}
 
           <section id="truths">
@@ -93,7 +122,6 @@ const HomePage: React.FC = () => {
             <TricentricIntegration
               userId={userId}
               onPracticeComplete={refreshProfile}
-              stripeUrl={STRIPE_PAYMENT_LINK}
             />
           </section>
 
