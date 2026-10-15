@@ -2,28 +2,29 @@ import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import type { CenterType } from '@/types';
 
-interface AnalysisRequest {
-  type: 'misery' | 'synthesis';
-  bleeding?: CenterType;
-  sacrifice?: CenterType;
-  oxygen?: string[];
-  synthesis?: string;
-  head_intensity?: number;
-  heart_intensity?: number;
-  body_intensity?: number;
-  act_score?: number;
-}
+type AnalysisRequest =
+  | {
+      type: 'misery';
+      bleeding: CenterType;
+      sacrifice: CenterType;
+      oxygen: string[];
+    }
+  | {
+      type: 'synthesis';
+      synthesis: string;
+    }
+  | {
+      type: 'tricentric';
+      context: string;
+      head: string;
+      heart: string;
+      body: string;
+      synthesis: string;
+    };
 
 export function useAnalysis() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const getSystemPrompt = (type: 'misery' | 'synthesis', actScore?: number) => {
-    const actContext = actScore !== undefined ? ` [Índice ACT de Coherencia: ${actScore}/100]` : '';
-    return type === 'misery'
-      ? `You are SRAP-AI${actContext}. Be direct, philosophical and useful. Analyze the tension between the selected bleeding center, sacrifice, and tricentric coherence variance. Do not diagnose.`
-      : `You are SRAP-AI${actContext}. Evaluate clarity versus self-deception based on tricentric alignment. Be direct and useful. Do not diagnose or present speculation as fact.`;
-  };
 
   const analyze = async (request: AnalysisRequest): Promise<string | null> => {
     setLoading(true);
@@ -33,24 +34,33 @@ export function useAnalysis() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Inicia sesión para acceder al análisis.');
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      if (!supabaseUrl) throw new Error('Configuración de Supabase incompleta.');
-
-      const response = await fetch(`${supabaseUrl}/functions/v1/srap-analysis`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(request),
+      const { data, error: invokeError } = await supabase.functions.invoke('srap-analysis', {
+        body: request,
       });
 
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) {
-        throw new Error(typeof data.error === 'string' ? data.error : `Error remoto (${response.status}).`);
+      if (invokeError) {
+        const response = 'context' in invokeError ? invokeError.context : null;
+        if (response instanceof Response) {
+          const body: unknown = await response.clone().json().catch(() => null);
+          if (
+            typeof body === 'object' &&
+            body !== null &&
+            'error' in body &&
+            typeof body.error === 'string'
+          ) {
+            throw new Error(body.error);
+          }
+        }
+        throw new Error('No se pudo completar el análisis. Inténtalo de nuevo más tarde.');
       }
 
-      if (typeof data.analysis !== 'string' || !data.analysis.trim()) {
+      if (
+        typeof data !== 'object' ||
+        data === null ||
+        !('analysis' in data) ||
+        typeof data.analysis !== 'string' ||
+        !data.analysis.trim()
+      ) {
         throw new Error('El servicio de análisis devolvió una respuesta vacía.');
       }
 

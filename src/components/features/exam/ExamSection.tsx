@@ -1,59 +1,75 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import { supabase } from '@/lib/supabase';
+import { completeEvaluation } from '@/services/evaluation';
 import type { CenterType } from '@/types';
 
 interface ExamSectionProps {
-  onEvaluationComplete?: () => void;
+  onEvaluationComplete?: () => void | Promise<void>;
 }
+
+const CENTERS: { id: CenterType; label: string; icon: string; color: string }[] = [
+  { id: 'head', label: 'Cabeza', icon: '🧠', color: 'blue' },
+  { id: 'heart', label: 'Corazón', icon: '💛', color: 'rose' },
+  { id: 'body', label: 'Cuerpo', icon: '🌿', color: 'emerald' },
+];
+
+const OXYGEN_OPTIONS = [
+  'Cuerpo: hacer una pausa o ajustar el ritmo, si me resulta posible.',
+  'Corazón: nombrar lo que siento o conversar con alguien de confianza.',
+  'Cabeza: separar un hecho comprobable de una suposición.',
+];
 
 const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
   const [bleeding, setBleeding] = useState<CenterType | ''>('');
   const [sacrifice, setSacrifice] = useState<CenterType | ''>('');
   const [oxygen, setOxygen] = useState<string[]>([]);
-  const [synthesis, setSynthesis] = useState<string>('');
-
+  const [synthesis, setSynthesis] = useState('');
   const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
   const [aiSynthesisFeedback, setAiSynthesisFeedback] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   const { analyze, loading: analyzing, error: analysisError } = useAnalysis();
 
   const handleOxygenChange = (value: string) => {
-    setOxygen(prev => 
-      prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]
+    setOxygen((previous) =>
+      previous.includes(value) ? previous.filter((item) => item !== value) : [...previous, value],
     );
   };
 
   const handleAcceptReality = async () => {
     if (!bleeding || !sacrifice) {
-      alert("Complete diagnostic and sacrifice first.");
+      setMessage({ type: 'error', text: 'Elige el centro que necesita atención y el que quieres ajustar.' });
       return;
     }
 
+    setMessage(null);
     const result = await analyze({
       type: 'misery',
-      bleeding: bleeding as CenterType,
-      sacrifice: sacrifice as CenterType,
+      bleeding,
+      sacrifice,
       oxygen,
     });
 
-    setAiAnalysis(result);
-    setIsModalOpen(true);
+    if (result) {
+      setAiAnalysis(result);
+      setIsModalOpen(true);
+    }
   };
 
   const handleAnalyzeSynthesis = async () => {
     if (!synthesis.trim()) {
-      alert("Write your synthesis first.");
+      setMessage({ type: 'error', text: 'Escribe una síntesis antes de pedir una reflexión de IA.' });
       return;
     }
 
+    setMessage(null);
     const result = await analyze({
       type: 'synthesis',
-      synthesis,
+      synthesis: synthesis.trim(),
     });
 
     if (result) {
@@ -65,46 +81,22 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
 
   const handleSaveEvaluation = async () => {
     if (!bleeding || !sacrifice || !synthesis.trim()) {
-      alert("Complete all fields before saving.");
+      setMessage({ type: 'error', text: 'Completa los centros y tu síntesis antes de guardar.' });
       return;
     }
 
     setSaving(true);
+    setMessage(null);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) {
-        alert("You must log in to save evaluations.");
-        return;
-      }
-
-      const { data, error } = await supabase.rpc('complete_evaluation', {
-        p_bleeding_center: bleeding,
-        p_sacrifice_center: sacrifice,
-        p_oxygen_actions: oxygen,
-        p_synthesis_text: synthesis.trim(),
-        p_ai_analysis: aiAnalysis || '',
-        p_ai_synthesis_feedback: aiSynthesisFeedback,
+      const result = await completeEvaluation({
+        bleedingCenter: bleeding,
+        sacrificeCenter: sacrifice,
+        oxygenActions: oxygen,
+        synthesis: synthesis.trim(),
+        aiAnalysis,
+        aiSynthesisFeedback,
       });
-
-      if (error) {
-        if (error.code === '23505') {
-          alert("Today's evaluation has already been completed.");
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      const result = data as {
-        xp_earned: number;
-        experience_points: number;
-        current_level: number;
-        streak_days: number;
-        total_evaluations: number;
-        achievement_xp: number;
-      };
 
       setBleeding('');
       setSacrifice('');
@@ -112,23 +104,24 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
       setSynthesis('');
       setAiAnalysis(null);
       setAiSynthesisFeedback(null);
-
-      alert(`Evaluation saved. +${result.xp_earned} XP earned.`);
-
-      if (onEvaluationComplete) onEvaluationComplete();
+      setMessage({ type: 'success', text: `Evaluación guardada. Recibiste ${result.xpEarned} XP.` });
+      await onEvaluationComplete?.();
     } catch (error) {
-      console.error('Error saving evaluation:', error);
-      alert('Error saving evaluation.');
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === '23505'
+      ) {
+        setMessage({ type: 'error', text: 'Ya guardaste una evaluación hoy. Tu registro anterior sigue en tu historial.' });
+      } else {
+        console.error('Error saving SRAP evaluation:', error);
+        setMessage({ type: 'error', text: 'No se pudo guardar la evaluación. Tus respuestas siguen aquí; inténtalo de nuevo.' });
+      }
     } finally {
       setSaving(false);
     }
   };
-
-  const OXYGEN_OPTIONS = [
-    "5 minutes of conscious breathing (Body)",
-    "Write 1 unfiltered raw truth (Heart)",
-    "Do 1 real survival calculation (Head)"
-  ];
 
   const loading = analyzing || saving;
 
@@ -138,151 +131,175 @@ const ExamSection: React.FC<ExamSectionProps> = ({ onEvaluationComplete }) => {
         <Modal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          title="AI DIAGNOSIS"
-          icon="🎯"
+          title="Reflexión generada por IA"
+          icon="🧭"
         >
-          <p className="whitespace-pre-line text-lg font-medium tracking-tight">{aiAnalysis}</p>
+          <p className="whitespace-pre-line text-base leading-relaxed">{aiAnalysis}</p>
+          <p className="mt-4 text-sm text-slate-400">
+            Es una interpretación automatizada, no un hecho ni un diagnóstico. Puedes aceptarla,
+            corregirla o descartarla.
+          </p>
         </Modal>
       )}
-      <section className="py-12 px-6 max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold text-center mb-8 text-red-400">🎯 SRAP EXAM - RAW REALITY</h2>
-        
-        {analysisError && (
-          <div className="mb-6 p-4 bg-red-900/50 border border-red-500 rounded-lg text-red-200 text-center">
-            {analysisError}
-          </div>
-        )}
 
-        <div className="bg-gradient-to-br from-gray-900 to-black rounded-2xl p-8 border border-red-800 shadow-2xl">
-          <div className="text-center mb-8">
-            <div className="breathing-crudo w-24 h-24 rounded-full mx-auto mb-4 flex items-center justify-center">
-              <span className="text-3xl">💀</span>
+      <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
+        <div className="mb-8 text-center">
+          <h2 className="text-2xl font-bold text-amber-200 sm:text-3xl">Explora tu decisión</h2>
+          <p className="mx-auto mt-3 max-w-2xl leading-relaxed text-slate-300">
+            Señala qué perspectiva pide atención, elige un ajuste posible y escribe tu propia síntesis.
+            No tienes que seguir la sugerencia de la IA para guardar tu evaluación.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 sm:p-6">
+          <fieldset className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-4 sm:p-5">
+            <legend className="px-2 text-lg font-bold text-white">¿Qué centro necesita más atención hoy?</legend>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              {CENTERS.map((center) => (
+                <button
+                  key={center.id}
+                  type="button"
+                  onClick={() => {
+                    setBleeding(center.id);
+                    setMessage(null);
+                  }}
+                  aria-pressed={bleeding === center.id}
+                  className={`min-h-14 rounded-xl border px-4 py-3 font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
+                    bleeding === center.id
+                      ? 'border-amber-300 bg-amber-950/50 text-white'
+                      : 'border-slate-700 bg-slate-950 text-slate-300 hover:border-slate-500'
+                  }`}
+                >
+                  <span aria-hidden="true">{center.icon} </span>
+                  {center.label}
+                </button>
+              ))}
             </div>
-            <p className="text-gray-400 italic mb-4 text-lg">
-              "Enlightenment is not perpetual peace. It is knowing that fear in the chest,
-              mental calculation and trembling in the hands are the normal orchestra of being alive."
+          </fieldset>
+
+          <div className="mb-6">
+            <label htmlFor="sacrifice-center" className="mb-2 block text-lg font-bold text-white">
+              ¿Qué aspecto podrías ajustar o posponer por ahora?
+            </label>
+            <select
+              id="sacrifice-center"
+              value={sacrifice}
+              onChange={(event) => {
+                setSacrifice(event.target.value as CenterType | '');
+                setMessage(null);
+              }}
+              className="min-h-12 w-full rounded-xl border border-slate-600 bg-slate-900 p-3 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+            >
+              <option value="">Elige un centro</option>
+              <option value="head">Cabeza: dejar un supuesto abierto y buscar evidencia.</option>
+              <option value="heart">Corazón: reconocer un valor sin resolverlo todo hoy.</option>
+              <option value="body">Cuerpo: adaptar el ritmo a tus límites actuales.</option>
+            </select>
+          </div>
+
+          <fieldset className="mb-6 rounded-xl border border-slate-700 bg-slate-900 p-4 sm:p-5">
+            <legend className="px-2 text-lg font-bold text-white">¿Qué apoyo pequeño te serviría?</legend>
+            <div className="space-y-2">
+              {OXYGEN_OPTIONS.map((option) => (
+                <label key={option} className="flex min-h-12 cursor-pointer items-start gap-3 rounded-lg border border-slate-700 bg-slate-950 p-3 hover:border-slate-500">
+                  <input
+                    type="checkbox"
+                    checked={oxygen.includes(option)}
+                    onChange={() => handleOxygenChange(option)}
+                    className="mt-1 size-5 shrink-0 accent-amber-400"
+                  />
+                  <span className="text-sm leading-relaxed text-slate-200">{option}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+
+          <div>
+            <label htmlFor="synthesis-text" className="mb-2 block text-lg font-bold text-white">
+              Tu síntesis y siguiente paso
+            </label>
+            <p id="synthesis-guidance" className="mb-3 text-sm leading-relaxed text-slate-400">
+              ¿Qué sabes, qué sigue siendo incierto y qué paso eliges? Compartir tu síntesis con IA es opcional.
             </p>
-            <p className="text-yellow-400 font-bold text-xl uppercase tracking-widest">
-              Wisdom is not letting any drown the others.
+            <textarea
+              id="synthesis-text"
+              value={synthesis}
+              onChange={(event) => {
+                setSynthesis(event.target.value);
+                setMessage(null);
+              }}
+              maxLength={5000}
+              aria-describedby="synthesis-guidance synthesis-count"
+              placeholder="Mi siguiente paso será..."
+              className="min-h-36 w-full resize-y rounded-xl border border-slate-600 bg-slate-950 p-3 text-white placeholder:text-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+            />
+            <p id="synthesis-count" className="mt-1 text-right text-xs text-slate-400">
+              {synthesis.length}/5000
             </p>
           </div>
 
-          {loading && (
-            <div className="my-8">
-              <LoadingSpinner message={saving ? 'SAVING REALITY...' : 'ANALYZING...'} />
+          <p className="mt-4 rounded-lg bg-slate-900 p-3 text-sm leading-relaxed text-slate-300" id="ai-privacy-note">
+            Si eliges una acción de IA, se envían los centros seleccionados y/o la síntesis a SRAP-AI
+            para generar una reflexión. No incluyas nombres ni datos que identifiquen a otras personas.
+            Las respuestas de los centros del Mapa Tricéntrico no se envían en este paso.
+          </p>
+
+          {(message || analysisError) && (
+            <div className="mt-4 space-y-2" aria-live="polite">
+              {message && (
+                <p
+                  className={`rounded-lg p-3 text-sm ${
+                    message.type === 'error'
+                      ? 'border border-red-800 bg-red-950/50 text-red-100'
+                      : 'border border-emerald-800 bg-emerald-950/50 text-emerald-100'
+                  }`}
+                  role={message.type === 'error' ? 'alert' : 'status'}
+                >
+                  {message.text}
+                </p>
+              )}
+              {analysisError && (
+                <p className="rounded-lg border border-red-800 bg-red-950/50 p-3 text-sm text-red-100" role="alert">
+                  {analysisError}
+                </p>
+              )}
             </div>
           )}
 
-          <div className="space-y-8">
-                <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700/50">
-                    <h3 className="text-2xl font-bold text-red-400 mb-6 flex items-center gap-3">
-                      <span className="bg-red-400/10 text-red-400 w-8 h-8 rounded-full flex items-center justify-center text-sm">1</span>
-                      RAW DIAGNOSIS
-                    </h3>
-                    <p className="text-gray-300 mb-6 text-lg">Which of the three centers is bleeding MOST today?</p>
-                    
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { id: 'head' as CenterType, label: 'Head', icon: '🧠', ringColor: 'ring-blue-400', bgColor: 'bg-blue-900' },
-                  { id: 'heart' as CenterType, label: 'Heart', icon: '💔', ringColor: 'ring-red-400', bgColor: 'bg-red-900' },
-                  { id: 'body' as CenterType, label: 'Body', icon: '🦶', ringColor: 'ring-green-400', bgColor: 'bg-green-900' },
-                ].map(item => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setBleeding(item.id)}
-                    aria-pressed={bleeding === item.id}
-                    className={`flex flex-col items-center gap-4 p-6 ${item.bgColor} bg-opacity-20 rounded-2xl cursor-pointer transition-all duration-300 ring-2 focus:outline-none focus:ring-offset-4 focus:ring-offset-gray-900 ${bleeding === item.id ? item.ringColor + ' scale-105 bg-opacity-40 shadow-lg' : 'ring-transparent hover:bg-opacity-30'}`}
-                  >
-                    <span className="text-4xl" aria-hidden="true">{item.icon}</span>
-                    <span className="font-bold text-gray-200 text-lg">{item.label}</span>
-                  </button>
-                ))}
-              </div>
-                </div>
-
-                <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700/50">
-                    <h3 className="text-2xl font-bold text-red-400 mb-6 flex items-center gap-3">
-                      <span className="bg-red-400/10 text-red-400 w-8 h-8 rounded-full flex items-center justify-center text-sm">2</span>
-                      CONSCIOUS SACRIFICE
-                    </h3>
-                    <p className="text-gray-300 mb-6 text-lg">Which center has to give in TODAY so the other two survive?</p>
-                    
-              <select
-                value={sacrifice}
-                onChange={e => setSacrifice(e.target.value as CenterType)}
-                aria-label="Today's sacrifice"
-                className="w-full bg-black/60 text-white p-4 rounded-xl border border-red-600/50 focus:ring-2 focus:ring-red-400 focus:border-red-400 transition-all text-lg"
-              >
-                <option value="">Choose today's sacrifice...</option>
-                <option value="head">Head: Accept chaos, stop controlling</option>
-                <option value="heart">Heart: Postpone dreams, accept reality</option>
-                <option value="body">Body: Ignore fatigue, keep moving</option>
-              </select>
-                </div>
-
-                <div className="bg-gray-800/50 rounded-2xl p-8 border border-gray-700/50">
-                    <h3 className="text-2xl font-bold text-red-400 mb-6 flex items-center gap-3">
-                      <span className="bg-red-400/10 text-red-400 w-8 h-8 rounded-full flex items-center justify-center text-sm">3</span>
-                      SURVIVAL OXYGEN
-                    </h3>
-                    <p className="text-gray-300 mb-6 text-lg">What minimal action can give oxygen to the most drowned center?</p>
-                    
-                    <div className="space-y-4">
-                      {OXYGEN_OPTIONS.map(opt => (
-                        <label key={opt} className={`flex items-center space-x-4 p-4 rounded-xl cursor-pointer transition-all border ${oxygen.includes(opt) ? 'bg-red-900/40 border-red-600 shadow-inner' : 'bg-gray-700/50 border-transparent hover:bg-gray-700'}`}>
-                            <input
-                              type="checkbox"
-                              checked={oxygen.includes(opt)}
-                              onChange={() => handleOxygenChange(opt)}
-                              className="w-6 h-6 text-red-500 bg-gray-800 border-gray-600 rounded-lg focus:ring-red-500 accent-red-500"
-                            />
-                            <span className="text-gray-200">{opt}</span>
-                        </label>
-                      ))}
-                    </div>
-                </div>
+          {loading && (
+            <div className="my-5" role="status" aria-live="polite">
+              <LoadingSpinner message={saving ? 'Guardando tu evaluación…' : 'Preparando la reflexión…'} />
             </div>
+          )}
 
-            <div className="mt-12 p-8 bg-red-900/10 border-2 border-yellow-600/30 rounded-3xl shadow-inner">
-                <h3 className="text-2xl font-black text-yellow-500 mb-6 flex items-center gap-3">
-                  <span className="text-3xl">💎</span>
-                  RAW INTEGRATION
-                </h3>
-                <textarea 
-                    id="synthesis-text"
-                    value={synthesis}
-                    onChange={e => setSynthesis(e.target.value)}
-                    aria-label="Raw integration synthesis"
-                    maxLength={5000}
-                    placeholder='Write your realistic synthesis. Example: "Today the body bleeds most. I will sacrifice mental control (head) to give 10 minutes of rest to the body. The heart will wait until tomorrow."'
-                    className="w-full h-40 bg-black/40 border border-yellow-600/50 rounded-2xl p-6 text-white text-lg focus:outline-none resize-none focus:ring-2 focus:ring-yellow-400/50 transition-all placeholder:text-gray-600"
-                ></textarea>
-                
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6">
-              <button
-                onClick={handleAcceptReality}
-                disabled={loading}
-                className="w-full sm:w-auto bg-red-700 hover:bg-red-600 text-white font-black py-4 px-10 rounded-2xl transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed disabled:animate-none shadow-xl transform hover:-translate-y-1 active:translate-y-0"
-              >
-                💀 ACCEPT REALITY
-              </button>
-              <button
-                onClick={handleAnalyzeSynthesis}
-                disabled={loading || !synthesis.trim()}
-                className="w-full sm:w-auto bg-yellow-600 hover:bg-yellow-500 text-black font-black py-4 px-10 rounded-2xl transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed shadow-xl transform hover:-translate-y-1 active:translate-y-0"
-              >
-                🔬 ANALYZE
-              </button>
-              <button
-                onClick={handleSaveEvaluation}
-                disabled={loading || !bleeding || !sacrifice || !synthesis.trim()}
-                className="w-full sm:w-auto bg-green-700 hover:bg-green-600 text-white font-black py-4 px-10 rounded-2xl transition-all disabled:bg-gray-800 disabled:text-gray-500 disabled:cursor-not-allowed shadow-xl transform hover:-translate-y-1 active:translate-y-0"
-              >
-                💾 SAVE
-              </button>
-            </div>
-            </div>
+          <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <button
+              type="button"
+              onClick={handleAcceptReality}
+              disabled={loading}
+              aria-describedby="ai-privacy-note"
+              className="min-h-12 rounded-xl bg-slate-800 px-4 py-3 font-bold text-white hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Pedir reflexión de IA
+            </button>
+            <button
+              type="button"
+              onClick={handleAnalyzeSynthesis}
+              disabled={loading || !synthesis.trim()}
+              aria-describedby="ai-privacy-note"
+              className="min-h-12 rounded-xl bg-amber-300 px-4 py-3 font-bold text-slate-950 hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Analizar mi síntesis
+            </button>
+            <button
+              type="button"
+              onClick={handleSaveEvaluation}
+              disabled={loading || !bleeding || !sacrifice || !synthesis.trim()}
+              className="min-h-12 rounded-xl bg-emerald-700 px-4 py-3 font-bold text-white hover:bg-emerald-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Guardar evaluación
+            </button>
+          </div>
         </div>
       </section>
     </>
